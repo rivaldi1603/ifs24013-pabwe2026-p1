@@ -1,0 +1,47 @@
+[
+  {
+    "id": 1,
+    "name": "Admin JelajahToba",
+    "email": "admin@jelajahtoba.id",
+    "password": "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9",
+    "role": "admin",
+    "phone": "08126001001",
+    "organization": "Pengelola Direktori JelajahToba"
+  },
+  {
+    "id": 2,
+    "name": "Saut Sitorus (Ketua Pokdarwis Hutaraja)",
+    "email": "hutaraja@jelajahtoba.id",
+    "password": "c68caf0d42fd90a149c223195cf2033af185c6cb58d3c469705d57367c419ed1",
+    "role": "partner",
+    "phone": "081375223344",
+    "organization": "Komunitas Tenun Hutaraja Samosir"
+  },
+  {
+    "id": 3,
+    "name": "Tigor Sirait (Pemandu Geopark Kaldera)",
+    "email": "tigor.guide@jelajahtoba.id",
+    "password": "c68caf0d42fd90a149c223195cf2033af185c6cb58d3c469705d57367c419ed1",
+    "role": "partner",
+    "phone": "082165889900",
+    "organization": "Himpunan Pramuwisata Toba"
+  },
+  {
+    "id": 4,
+    "name": "Inang Dame Homestay",
+    "email": "dame.homestay@jelajahtoba.id",
+    "password": "c68caf0d42fd90a149c223195cf2033af185c6cb58d3c469705d57367c419ed1",
+    "role": "partner",
+    "phone": "085270112233",
+    "organization": "Asosiasi Homestay Lumban Bulbul"
+  },
+  {
+    "id": 5,
+    "name": "Budi Santoso (Wisatawan)",
+    "email": "budi.traveler@gmail.com",
+    "password": "e606e38b0d8c19b24cf0ee3808183162ea7cd63ff7912dbb22b5e803286b4446",
+    "role": "user",
+    "phone": "081912345678",
+    "organization": "Wisatawan Mandiri"
+  }
+]
