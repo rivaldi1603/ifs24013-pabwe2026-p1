@@ -58,3 +58,7 @@ export function getEstimatedPrice(min, max, unit = '') {
   }
   return `${formatCurrency(min || max)}${unitSuffix}`;
 }
+
+export function generateSessionId() {
+  return 'jt_' + Math.random().toString(36).substring(2, 9);
+}

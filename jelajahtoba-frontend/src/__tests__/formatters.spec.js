@@ -5,7 +5,8 @@ import {
   formatServiceType,
   truncateText,
   slugify,
-  getEstimatedPrice
+  getEstimatedPrice,
+  generateSessionId
 } from '../utils/formatters.js';
 
 describe('formatters utility unit tests', () => {
@@ -116,6 +117,14 @@ describe('formatters utility unit tests', () => {
     it('returns contact message when neither price is provided', () => {
       expect(getEstimatedPrice(0, 0)).toBe('Hubungi Pengelola');
       expect(getEstimatedPrice(null, null)).toBe('Hubungi Pengelola');
+    });
+  });
+
+  describe('generateSessionId', () => {
+    it('generates a session id with jt_ prefix', () => {
+      const id = generateSessionId();
+      expect(typeof id).toBe('string');
+      expect(id.startsWith('jt_')).toBe(true);
     });
   });
 });
