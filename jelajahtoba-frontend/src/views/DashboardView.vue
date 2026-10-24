@@ -207,7 +207,7 @@ const { currentUser: user } = useAuth();
 .stat-value {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #0284c7;
+  color: #0369a1;
   line-height: 1.2;
 }
 
@@ -272,12 +272,12 @@ const { currentUser: user } = useAuth();
 .shortcut-item strong {
   display: block;
   font-size: 0.95rem;
-  color: #0284c7;
+  color: #0369a1;
 }
 
 .shortcut-item small {
   display: block;
   font-size: 0.8rem;
-  color: #475569;
+  color: #334155;
 }
 </style>

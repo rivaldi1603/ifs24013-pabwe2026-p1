@@ -142,7 +142,7 @@
     <div v-if="currentTab === 'destinations'" class="tab-panel card fade-in">
       <div class="panel-header">
         <div>
-          <h3>Kelola Destinasi Wisata</h3>
+          <h2>Kelola Destinasi Wisata</h2>
           <p class="panel-sub">Tambah, ubah data, atau hapus tempat wisata di kawasan Danau Toba.</p>
         </div>
         <div class="panel-tools">
@@ -189,7 +189,7 @@
     <div v-if="currentTab === 'services'" class="tab-panel card fade-in">
       <div class="panel-header">
         <div>
-          <h3>Kelola Jasa Budaya & Homestay Warga</h3>
+          <h2>Kelola Jasa Budaya & Homestay Warga</h2>
           <p class="panel-sub">Layanan berbasis komunitas lokal Danau Toba.</p>
         </div>
         <div class="panel-tools">
@@ -238,7 +238,7 @@
     <div v-if="currentTab === 'transport'" class="tab-panel card fade-in">
       <div class="panel-header">
         <div>
-          <h3>Kelola Jadwal Ferry & Transportasi Danau Toba</h3>
+          <h2>Kelola Jadwal Ferry & Transportasi Danau Toba</h2>
           <p class="panel-sub">Jadwal penyeberangan KMP Ferry, kapal kayu tradisional, dan shuttle darat.</p>
         </div>
         <div class="panel-tools">
@@ -291,7 +291,7 @@
     <div v-if="currentTab === 'culinary'" class="tab-panel card fade-in">
       <div class="panel-header">
         <div>
-          <h3>Kelola Menu Kuliner Khas</h3>
+          <h2>Kelola Menu Kuliner Khas</h2>
           <p class="panel-sub">Katalog kuliner tradisional Danau Toba (Naniura, Arsik, Sasagun, dll).</p>
         </div>
         <div class="panel-tools">
@@ -339,7 +339,7 @@
     <div v-if="currentTab === 'articles'" class="tab-panel card fade-in">
       <div class="panel-header">
         <div>
-          <h3>Kelola Cerita Danau Toba (Artikel Budaya & Wisata)</h3>
+          <h2>Kelola Cerita Danau Toba (Artikel Budaya & Wisata)</h2>
           <p class="panel-sub">Artikel wawasan budaya, legenda, dan tips perjalanan bagi wisatawan.</p>
         </div>
         <div class="panel-tools">
@@ -386,7 +386,7 @@
     <div v-if="currentTab === 'reviews'" class="tab-panel card fade-in">
       <div class="panel-header">
         <div>
-          <h3>Moderasi Ulasan Pengunjung</h3>
+          <h2>Moderasi Ulasan Pengunjung</h2>
           <p class="panel-sub">Hapus ulasan spam atau komentar tidak pantas dari pengunjung.</p>
         </div>
         <div class="panel-tools">
@@ -434,7 +434,7 @@
     <div v-if="currentTab === 'users'" class="tab-panel card fade-in">
       <div class="panel-header">
         <div>
-          <h3>Daftar Pengguna Terdaftar</h3>
+          <h2>Daftar Pengguna Terdaftar</h2>
           <p class="panel-sub">Seluruh pengguna platform JelajahToba yang tersimpan di basis data.</p>
         </div>
         <div class="panel-tools">
@@ -490,7 +490,7 @@
     <div v-if="destModalOpen" class="modal-overlay" @click.self="destModalOpen = false">
       <div class="modal-card fade-in">
         <div class="modal-header">
-          <h3 class="modal-title">{{ destForm.id ? 'Edit Destinasi' : 'Tambah Destinasi Baru' }}</h3>
+          <h2 class="modal-title">{{ destForm.id ? 'Edit Destinasi' : 'Tambah Destinasi Baru' }}</h2>
           <button @click="destModalOpen = false" class="modal-close-btn">&times;</button>
         </div>
         <form @submit.prevent="saveDestination" class="modal-form-grid">
@@ -542,7 +542,7 @@
     <div v-if="serviceModalOpen" class="modal-overlay" @click.self="serviceModalOpen = false">
       <div class="modal-card fade-in">
         <div class="modal-header">
-          <h3 class="modal-title">{{ serviceForm.id ? 'Edit Jasa / Homestay' : 'Tambah Jasa Baru' }}</h3>
+          <h2 class="modal-title">{{ serviceForm.id ? 'Edit Jasa / Homestay' : 'Tambah Jasa Baru' }}</h2>
           <button @click="serviceModalOpen = false" class="modal-close-btn">&times;</button>
         </div>
         <form @submit.prevent="saveService" class="modal-form-grid">
@@ -598,7 +598,7 @@
     <div v-if="transportModalOpen" class="modal-overlay" @click.self="transportModalOpen = false">
       <div class="modal-card fade-in">
         <div class="modal-header">
-          <h3 class="modal-title">{{ transportForm.id ? 'Edit Rute Penyeberangan' : 'Tambah Rute Penyeberangan Baru' }}</h3>
+          <h2 class="modal-title">{{ transportForm.id ? 'Edit Rute Penyeberangan' : 'Tambah Rute Penyeberangan Baru' }}</h2>
           <button @click="transportModalOpen = false" class="modal-close-btn">&times;</button>
         </div>
         <form @submit.prevent="saveTransport" class="modal-form-grid">
@@ -650,7 +650,7 @@
     <div v-if="culinaryModalOpen" class="modal-overlay" @click.self="culinaryModalOpen = false">
       <div class="modal-card fade-in">
         <div class="modal-header">
-          <h3 class="modal-title">{{ culinaryForm.id ? 'Edit Kuliner Khas' : 'Tambah Menu Kuliner Khas' }}</h3>
+          <h2 class="modal-title">{{ culinaryForm.id ? 'Edit Kuliner Khas' : 'Tambah Menu Kuliner Khas' }}</h2>
           <button @click="culinaryModalOpen = false" class="modal-close-btn">&times;</button>
         </div>
         <form @submit.prevent="saveCulinary" class="modal-form-grid">
@@ -689,7 +689,7 @@
     <div v-if="articleModalOpen" class="modal-overlay" @click.self="articleModalOpen = false">
       <div class="modal-card fade-in">
         <div class="modal-header">
-          <h3 class="modal-title">{{ articleForm.id ? 'Edit Cerita Toba' : 'Tulis Cerita / Artikel Baru' }}</h3>
+          <h2 class="modal-title">{{ articleForm.id ? 'Edit Cerita Toba' : 'Tulis Cerita / Artikel Baru' }}</h2>
           <button @click="articleModalOpen = false" class="modal-close-btn">&times;</button>
         </div>
         <form @submit.prevent="saveArticle" class="modal-form-grid">
@@ -1004,8 +1004,8 @@ onMounted(() => {
 }
 
 .badge-admin-glow {
-  background: #0284c7;
-  color: white;
+  background: #075985;
+  color: #ffffff;
   font-size: 0.725rem;
   font-weight: 800;
   padding: 0.2rem 0.6rem;
@@ -1014,7 +1014,7 @@ onMounted(() => {
 
 .badge-system-status {
   font-size: 0.725rem;
-  color: #94a3b8;
+  color: #cbd5e1;
   font-weight: 600;
 }
 
@@ -1027,7 +1027,7 @@ onMounted(() => {
 
 .dash-subtitle {
   font-size: 0.9rem;
-  color: #94a3b8;
+  color: #e2e8f0;
   max-width: 780px;
   line-height: 1.5;
 }
@@ -1111,8 +1111,8 @@ onMounted(() => {
 }
 
 .dash-tab-btn.active {
-  color: var(--primary-600);
-  border-bottom: 3px solid var(--primary-600);
+  color: #0369a1;
+  border-bottom: 3px solid #0369a1;
   margin-bottom: -0.35rem;
   background: white;
 }
@@ -1129,6 +1129,13 @@ onMounted(() => {
   align-items: center;
   gap: 1rem;
   margin-bottom: 1.25rem;
+}
+
+.panel-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
 }
 
 .panel-sub {
@@ -1181,8 +1188,9 @@ onMounted(() => {
 .id-tag {
   font-size: 0.75rem;
   font-family: monospace;
-  color: #64748b;
-  background: #f1f5f9;
+  color: #1e293b;
+  background: #e2e8f0;
+  font-weight: 700;
   padding: 0.15rem 0.35rem;
   border-radius: 4px;
 }
@@ -1190,7 +1198,7 @@ onMounted(() => {
 .table-sub {
   display: block;
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: #475569;
 }
 
 .table-desc-cell {
@@ -1208,12 +1216,12 @@ onMounted(() => {
 }
 
 .time-sub {
-  color: #94a3b8;
+  color: #475569;
   font-size: 0.75rem;
 }
 
 .rating-stars-gold {
-  color: #f59e0b;
+  color: #b45309;
   font-weight: 800;
 }
 

@@ -20,7 +20,7 @@
       </div>
 
       <div class="footer-links-group">
-        <h4>Wilayah Kaldera</h4>
+        <h2>Wilayah Kaldera</h2>
         <ul>
           <li><router-link to="/destinasi?regency=1">Kabupaten Toba</router-link></li>
           <li><router-link to="/destinasi?regency=2">Kabupaten Samosir</router-link></li>
@@ -32,7 +32,7 @@
       </div>
 
       <div class="footer-links-group">
-        <h4>Fitur Layanan</h4>
+        <h2>Fitur Layanan</h2>
         <ul>
           <li><router-link to="/destinasi">Direktori Objek Wisata</router-link></li>
           <li><router-link to="/jasa-lokal">Homestay & Pemandu Lokal</router-link></li>
@@ -44,7 +44,7 @@
       </div>
 
       <div class="footer-links-group">
-        <h4>Konteks Proyek</h4>
+        <h2>Konteks Proyek</h2>
         <p class="footer-note">
           Pengembangan Aplikasi Berbasis Web (PABWE)<br>
           Institut Teknologi Del (IT DEL)<br>
@@ -120,6 +120,7 @@
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
+.footer-links-group h2,
 .footer-links-group h4 {
   color: white;
   font-size: 1.05rem;

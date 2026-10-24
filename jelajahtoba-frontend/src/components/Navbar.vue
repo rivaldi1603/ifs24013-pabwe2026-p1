@@ -2,7 +2,7 @@
   <header class="navbar-wrapper">
     <div class="container navbar-inner">
       <!-- Logo -->
-      <router-link to="/" class="brand-logo" aria-label="JelajahToba Beranda">
+      <router-link to="/" class="brand-logo">
         <div class="brand-icon">
           <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="icon-svg">
             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"></path>
@@ -306,18 +306,18 @@ function handleLogout() {
 }
 
 .badge-admin {
-  background: #0284c7;
-  color: white;
+  background: #075985;
+  color: #ffffff;
 }
 
 .badge-partner {
-  background: #7c3aed;
-  color: white;
+  background: #5b21b6;
+  color: #ffffff;
 }
 
 .badge-user {
-  background: #10b981;
-  color: white;
+  background: #065f46;
+  color: #ffffff;
 }
 
 .user-name {

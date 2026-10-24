@@ -96,7 +96,7 @@
     <div v-if="currentTab === 'reviews'" class="tab-panel card fade-in">
       <div class="panel-header">
         <div>
-          <h3>Riwayat Ulasan & Penilaian Anda</h3>
+          <h2>Riwayat Ulasan & Penilaian Anda</h2>
           <p class="panel-sub">Ulasan yang Anda kirimkan untuk objek wisata maupun layanan lokal di kawasan Danau Toba.</p>
         </div>
       </div>
@@ -107,7 +107,7 @@
 
       <div v-else-if="myReviews.length === 0" class="empty-reviews-state">
         <div class="empty-icon">✍️</div>
-        <h4>Anda Belum Menulis Ulasan</h4>
+        <h3>Anda Belum Menulis Ulasan</h3>
         <p>Jelajahi objek wisata Danau Toba dan bagikan ulasan serta penilaian bintang Anda untuk membantu wisatawan lain!</p>
         <router-link to="/destinasi" class="btn btn-primary" style="margin-top: 1rem;">
           Mulai Menjelajahi Destinasi
@@ -119,7 +119,7 @@
           <div class="my-rev-header">
             <div>
               <span class="badge-target">{{ rev.target_type === 'destination' ? '📍 Destinasi' : '🧶 Layanan' }}</span>
-              <h4 class="my-rev-target-name">{{ rev.target_name || ('Objek #' + rev.target_id) }}</h4>
+              <h3 class="my-rev-target-name">{{ rev.target_name || ('Objek #' + rev.target_id) }}</h3>
               <span class="my-rev-date">{{ rev.created_at }}</span>
             </div>
             <div class="my-rev-stars">
@@ -140,7 +140,7 @@
     <div v-if="currentTab === 'recommendations'" class="tab-panel card fade-in">
       <div class="panel-header">
         <div>
-          <h3>Destinasi Rekomendasi Paling Populer</h3>
+          <h2>Destinasi Rekomendasi Paling Populer</h2>
           <p class="panel-sub">Destinasi dengan ulasan positif terbanyak yang wajib Anda kunjungi.</p>
         </div>
       </div>
@@ -153,7 +153,7 @@
           </div>
           <div class="rec-body">
             <span class="rec-category">{{ d.category_name }} • {{ d.regency_short || d.regency_name }}</span>
-            <h4 class="rec-name">{{ d.name }}</h4>
+            <h3 class="rec-name">{{ d.name }}</h3>
             <p class="rec-price">Tiket: <strong>{{ d.price_display }}</strong></p>
             <router-link :to="`/destinasi/${d.slug}`" class="btn btn-secondary btn-sm" style="width: 100%; margin-top: 0.75rem;">
               Lihat Detail & Tulis Ulasan
@@ -167,7 +167,7 @@
     <div v-if="showEditModal" class="modal-overlay" @click.self="showEditModal = false">
       <div class="modal-card fade-in" style="max-width: 540px;">
         <div class="modal-header">
-          <h3 class="modal-title">Edit Profil Pengguna</h3>
+          <h2 class="modal-title">Edit Profil Pengguna</h2>
           <button @click="showEditModal = false" class="modal-close-btn">&times;</button>
         </div>
 
@@ -480,19 +480,19 @@ onMounted(() => {
 }
 
 .badge-user {
-  background: #10b981;
-  color: white;
+  background: #065f46;
+  color: #ffffff;
 }
 
 .badge-partner {
-  background: #7c3aed;
-  color: white;
+  background: #5b21b6;
+  color: #ffffff;
 }
 
 .account-status-chip {
   font-size: 0.75rem;
-  color: #059669;
-  font-weight: 600;
+  color: #065f46;
+  font-weight: 700;
 }
 
 .user-display-name {
@@ -615,8 +615,8 @@ onMounted(() => {
 }
 
 .dash-tab-btn.active {
-  color: var(--primary-600);
-  border-bottom: 3px solid var(--primary-600);
+  color: #0369a1;
+  border-bottom: 3px solid #0369a1;
   margin-bottom: -0.35rem;
   background: white;
 }
@@ -628,6 +628,13 @@ onMounted(() => {
 
 .panel-header {
   margin-bottom: 1.5rem;
+}
+
+.panel-header h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
 }
 
 .panel-sub {
@@ -680,13 +687,13 @@ onMounted(() => {
 
 .my-rev-date {
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: #475569;
 }
 
 .my-rev-stars {
   font-size: 1.15rem;
   font-weight: 800;
-  color: #f59e0b;
+  color: #b45309;
 }
 
 .my-rev-comment {
@@ -705,7 +712,8 @@ onMounted(() => {
 .btn-link {
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--primary-600);
+  color: #0369a1;
+  text-decoration: underline;
 }
 
 .btn-link:hover {
