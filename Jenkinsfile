@@ -209,12 +209,20 @@ pipeline {
 
                     rm -f latest-app.zip
 
+                    # Hapus cache scanner, trivy, coverage, dan node_modules agar ukuran zip kecil & file < 5000
+                    rm -rf .scannerwork */.scannerwork .trivy-cache */.trivy-cache coverage */coverage */node_modules node_modules
+
                     zip -r latest-app.zip . \
                         -x "node_modules/*" \
+                        -x "*/node_modules/*" \
                         -x ".git/*" \
+                        -x "*/.git/*" \
+                        -x ".scannerwork/*" \
+                        -x "*/.scannerwork/*" \
                         -x ".env" \
                         -x ".env.*" \
                         -x "coverage/*" \
+                        -x "*/coverage/*" \
                         -x ".next/*" \
                         -x "out/*" \
                         -x ".nuxt/*" \
@@ -224,6 +232,7 @@ pipeline {
                         -x "dist/*" \
                         -x "build/*" \
                         -x ".trivy-cache/*" \
+                        -x "*/.trivy-cache/*" \
                         -x "latest-app.zip" \
                         -x "trivy-results.sarif" \
                         -x ".docs/*"

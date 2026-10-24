@@ -1,8 +1,10 @@
 {
   "name": "jelajahtoba-root",
   "type": "module",
+  "main": "server.js",
   "private": true,
   "scripts": {
+    "start": "node server.js",
     "dev": "concurrently \"bun run dev:backend\" \"bun run dev:frontend\"",
     "dev:frontend": "bun --cwd jelajahtoba-frontend dev",
     "dev:backend": "bun --cwd jelajahtoba-backend dev",
