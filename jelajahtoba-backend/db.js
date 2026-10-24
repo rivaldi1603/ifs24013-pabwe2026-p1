@@ -63,50 +63,30 @@ function createSqlJsWrapper(wasmDb) {
   };
 }
 
-// Di lingkungan Vercel serverless, gunakan sql-wasm-inline (WebAssembly inlined)
-// Ini 100% bebas dari external .wasm file path error dan native C++ binary error
-if (process.env.VERCEL) {
-  const initSqlJs = require('sql.js/dist/sql-wasm-inline.js');
-  dbReady = (async () => {
-    try {
-      const SQL = await initSqlJs();
-      let buffer = null;
-      if (fs.existsSync(dbPath)) {
-        buffer = fs.readFileSync(dbPath);
-      }
-      const wasmDb = buffer ? new SQL.Database(buffer) : new SQL.Database();
-      if (!buffer) {
-        const seedPath = path.join(__dirname, 'seed.sql');
-        if (fs.existsSync(seedPath)) {
-          wasmDb.run(fs.readFileSync(seedPath, 'utf8'));
-        }
-      }
-      dbInstance = createSqlJsWrapper(wasmDb);
-      console.log('[JelajahToba] Vercel inline WebAssembly SQLite engine initialized.');
-    } catch (e) {
-      console.error('[JelajahToba] Failed to initialize inline sql.js on Vercel:', e);
-    }
-  })();
-} else {
-  // Di lingkungan server persistent (Delcom DWS / Docker / Local), gunakan better-sqlite3 jika tersedia
+// Pure WebAssembly SQLite engine (sql.js inline)
+// 100% portable, works across Vercel serverless, Linux, Windows, Docker, and Bun without C++ compilation
+const initSqlJs = require('sql.js/dist/sql-wasm-inline.js');
+dbReady = (async () => {
   try {
-    const mod = 'better-sqlite3';
-    const Database = require(mod);
-    const betterDb = new Database(dbPath);
-    betterDb.pragma('foreign_keys = ON');
-    betterDb.pragma('journal_mode = WAL');
-    dbInstance = betterDb;
-  } catch (nativeErr) {
-    console.warn('[JelajahToba] better-sqlite3 unavailable, falling back to inline sql.js:', nativeErr.message);
-    const initSqlJs = require('sql.js/dist/sql-wasm-inline.js');
-    dbReady = (async () => {
-      const SQL = await initSqlJs();
-      let buffer = fs.existsSync(dbPath) ? fs.readFileSync(dbPath) : null;
-      const wasmDb = buffer ? new SQL.Database(buffer) : new SQL.Database();
-      dbInstance = createSqlJsWrapper(wasmDb);
-    })();
+    const SQL = await initSqlJs();
+    let buffer = null;
+    if (fs.existsSync(dbPath)) {
+      buffer = fs.readFileSync(dbPath);
+    }
+    const wasmDb = buffer ? new SQL.Database(buffer) : new SQL.Database();
+    if (!buffer) {
+      const seedPath = path.join(__dirname, 'seed.sql');
+      if (fs.existsSync(seedPath)) {
+        wasmDb.run(fs.readFileSync(seedPath, 'utf8'));
+      }
+    }
+    dbInstance = createSqlJsWrapper(wasmDb);
+    console.log('[JelajahToba] SQLite engine (WebAssembly inline) ready. Tables count:', 
+      wasmDb.exec("SELECT count(*) FROM sqlite_master WHERE type='table'")[0]?.values[0][0] || 0);
+  } catch (e) {
+    console.error('[JelajahToba] Failed to initialize SQLite engine:', e);
   }
-}
+})();
 
 const db = {
   get ready() {
