@@ -45,10 +45,6 @@ pipeline {
                     echo "=== Installing Dependencies ==="
 
                     bun install
-                    if [ -d "jelajahtoba-frontend" ]; then
-                        echo "Installing jelajahtoba-frontend dependencies..."
-                        (cd jelajahtoba-frontend && bun install)
-                    fi
 
                     echo "=== Dependencies Installed ==="
                 '''
@@ -72,12 +68,7 @@ pipeline {
 
                     echo "=== Running Tests with Coverage ==="
 
-                    if [ -d "jelajahtoba-frontend" ]; then
-                        echo "Running coverage test in jelajahtoba-frontend..."
-                        (cd jelajahtoba-frontend && npx vitest run --coverage)
-                        mkdir -p coverage
-                        cp -r jelajahtoba-frontend/coverage/* coverage/ 2>/dev/null || true
-                    elif [ -f angular.json ]; then
+                    if [ -f angular.json ]; then
                         echo "Framework: Angular"
                         npx ng test --coverage
                     else
@@ -220,13 +211,10 @@ pipeline {
 
                     zip -r latest-app.zip . \
                         -x "node_modules/*" \
-                        -x "*/node_modules/*" \
-                        -x "*/*/node_modules/*" \
                         -x ".git/*" \
                         -x ".env" \
                         -x ".env.*" \
                         -x "coverage/*" \
-                        -x "*/coverage/*" \
                         -x ".next/*" \
                         -x "out/*" \
                         -x ".nuxt/*" \
@@ -234,7 +222,6 @@ pipeline {
                         -x ".svelte-kit/*" \
                         -x ".angular/*" \
                         -x "dist/*" \
-                        -x "*/dist/*" \
                         -x "build/*" \
                         -x ".trivy-cache/*" \
                         -x "latest-app.zip" \
