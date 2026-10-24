@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # JelajahToba: Direktori Wisata dan Jasa Lokal Danau Toba
 
 Aplikasi Web Direktori Wisata dan Jasa Lokal Berbasis Komunitas di Kawasan Kaldera Danau Toba (*UNESCO Global Geopark*).
@@ -131,3 +132,20 @@ Tersedia tombol *1-Click Demo Login* pada halaman Login & Dashboard:
 6. **Dashboard Pengelolaan Informasi**:
    - Kartu metrik total data.
    - Manajemen CRUD Destinasi & Jasa Budaya.
+=======
+# frontend
+
+To install dependencies:
+
+```bash
+bun install
+```
+
+To run:
+
+```bash
+bun run index.ts
+```
+
+This project was created using `bun init` in bun v1.4.2. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+>>>>>>> cbf709147d9d08262cb3bbb3d192989209efa886
