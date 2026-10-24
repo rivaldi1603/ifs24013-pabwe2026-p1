@@ -14,11 +14,17 @@
   "rewrites": [
     {
       "source": "/api",
-      "destination": "/api"
+      "destination": {
+        "service": "jelajahtoba-backend",
+        "path": "/api"
+      }
     },
     {
       "source": "/api/(.*)",
-      "destination": "/api"
+      "destination": {
+        "service": "jelajahtoba-backend",
+        "path": "/api/$1"
+      }
     },
     {
       "source": "/(.*)",
