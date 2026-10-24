@@ -1,0 +1,21 @@
+# dependencies
+node_modules
+*/node_modules
+
+# test coverage
+coverage
+*/coverage
+*.lcov
+
+# build artifacts
+dist
+*/dist
+latest-app.zip
+trivy-results.sarif
+.trivy-cache
+
+# logs & env
+*.log
+.env
+.env.*
+!.env.example

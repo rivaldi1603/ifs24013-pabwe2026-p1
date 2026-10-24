@@ -11,5 +11,16 @@ export default defineConfig({
         changeOrigin: true
       }
     }
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'lcov', 'html'],
+      reportsDirectory: './coverage',
+      include: ['src/utils/**/*.js', 'src/auth.js'],
+      all: true
+    }
   }
 });

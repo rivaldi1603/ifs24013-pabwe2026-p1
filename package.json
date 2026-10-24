@@ -5,7 +5,9 @@
     "dev": "concurrently \"bun run dev:backend\" \"bun run dev:frontend\"",
     "dev:frontend": "bun --cwd jelajahtoba-frontend dev",
     "dev:backend": "bun --cwd jelajahtoba-backend dev",
-    "build": "bun --cwd jelajahtoba-frontend build"
+    "build": "bun --cwd jelajahtoba-frontend build",
+    "test": "bun --cwd jelajahtoba-frontend test",
+    "test:coverage": "bun --cwd jelajahtoba-frontend test:coverage"
   },
   "devDependencies": {
     "concurrently": "^10.0.6"
