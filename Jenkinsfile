@@ -47,7 +47,7 @@ pipeline {
                     bun install
                     if [ -d "jelajahtoba-frontend" ]; then
                         echo "Installing jelajahtoba-frontend dependencies..."
-                        bun --cwd jelajahtoba-frontend install
+                        (cd jelajahtoba-frontend && bun install)
                     fi
 
                     echo "=== Dependencies Installed ==="
@@ -74,9 +74,7 @@ pipeline {
 
                     if [ -d "jelajahtoba-frontend" ]; then
                         echo "Running coverage test in jelajahtoba-frontend..."
-                        cd jelajahtoba-frontend
-                        npx vitest run --coverage
-                        cd ..
+                        (cd jelajahtoba-frontend && npx vitest run --coverage)
                         mkdir -p coverage
                         cp -r jelajahtoba-frontend/coverage/* coverage/ 2>/dev/null || true
                     elif [ -f angular.json ]; then
