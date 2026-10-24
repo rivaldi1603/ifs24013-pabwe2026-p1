@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "cleanUrls": true,
   "services": {
     "jelajahtoba-backend": {
       "root": "jelajahtoba-backend",
@@ -20,136 +21,16 @@
       }
     },
     {
-      "source": "/api/:path*",
+      "source": "/api/(.*)",
       "destination": {
         "service": "jelajahtoba-backend",
-        "path": "/api/:path*"
+        "path": "/api/$1"
       }
     },
     {
-      "source": "/assets/:path*",
+      "source": "/(.*)",
       "destination": {
-        "service": "jelajahtoba-frontend",
-        "path": "/assets/:path*"
-      }
-    },
-    {
-      "source": "/auth/login",
-      "destination": {
-        "service": "jelajahtoba-frontend",
-        "path": "/index.html"
-      }
-    },
-    {
-      "source": "/auth/register",
-      "destination": {
-        "service": "jelajahtoba-frontend",
-        "path": "/index.html"
-      }
-    },
-    {
-      "source": "/login",
-      "destination": {
-        "service": "jelajahtoba-frontend",
-        "path": "/index.html"
-      }
-    },
-    {
-      "source": "/register",
-      "destination": {
-        "service": "jelajahtoba-frontend",
-        "path": "/index.html"
-      }
-    },
-    {
-      "source": "/dashboard",
-      "destination": {
-        "service": "jelajahtoba-frontend",
-        "path": "/index.html"
-      }
-    },
-    {
-      "source": "/profil",
-      "destination": {
-        "service": "jelajahtoba-frontend",
-        "path": "/index.html"
-      }
-    },
-    {
-      "source": "/profile",
-      "destination": {
-        "service": "jelajahtoba-frontend",
-        "path": "/index.html"
-      }
-    },
-    {
-      "source": "/admin",
-      "destination": {
-        "service": "jelajahtoba-frontend",
-        "path": "/index.html"
-      }
-    },
-    {
-      "source": "/settings",
-      "destination": {
-        "service": "jelajahtoba-frontend",
-        "path": "/index.html"
-      }
-    },
-    {
-      "source": "/destinasi",
-      "destination": {
-        "service": "jelajahtoba-frontend",
-        "path": "/index.html"
-      }
-    },
-    {
-      "source": "/destinasi/:path*",
-      "destination": {
-        "service": "jelajahtoba-frontend",
-        "path": "/index.html"
-      }
-    },
-    {
-      "source": "/jasa-lokal",
-      "destination": {
-        "service": "jelajahtoba-frontend",
-        "path": "/index.html"
-      }
-    },
-    {
-      "source": "/jasa-lokal/:path*",
-      "destination": {
-        "service": "jelajahtoba-frontend",
-        "path": "/index.html"
-      }
-    },
-    {
-      "source": "/transportasi",
-      "destination": {
-        "service": "jelajahtoba-frontend",
-        "path": "/index.html"
-      }
-    },
-    {
-      "source": "/kuliner",
-      "destination": {
-        "service": "jelajahtoba-frontend",
-        "path": "/index.html"
-      }
-    },
-    {
-      "source": "/cerita",
-      "destination": {
-        "service": "jelajahtoba-frontend",
-        "path": "/index.html"
-      }
-    },
-    {
-      "source": "/:path*",
-      "destination": {
-        "service": "jelajahtoba-frontend",
-        "path": "/:path*"
+        "service": "jelajahtoba-frontend"
       }
     }
   ]
