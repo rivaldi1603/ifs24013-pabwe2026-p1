@@ -8,6 +8,7 @@ function loadUserFromStorage() {
     try {
       currentUser.value = JSON.parse(stored);
     } catch (e) {
+      console.error('Failed to parse user from storage:', e);
       currentUser.value = null;
     }
   } else {
@@ -17,13 +18,13 @@ function loadUserFromStorage() {
 
 loadUserFromStorage();
 
-window.addEventListener('storage', loadUserFromStorage);
-window.addEventListener('jt:auth-change', loadUserFromStorage);
-window.addEventListener('jt:unauthorized', () => {
+globalThis.addEventListener('storage', loadUserFromStorage);
+globalThis.addEventListener('jt:auth-change', loadUserFromStorage);
+globalThis.addEventListener('jt:unauthorized', () => {
   localStorage.removeItem('jt_token');
   localStorage.removeItem('jt_user');
   currentUser.value = null;
-  window.dispatchEvent(new CustomEvent('jt:auth-change'));
+  globalThis.dispatchEvent(new CustomEvent('jt:auth-change'));
 });
 
 export function useAuth() {
@@ -34,7 +35,7 @@ export function useAuth() {
       }
       localStorage.setItem('jt_user', JSON.stringify(userData));
       currentUser.value = userData;
-      window.dispatchEvent(new CustomEvent('jt:auth-change'));
+      globalThis.dispatchEvent(new CustomEvent('jt:auth-change'));
     }
   }
 
@@ -42,7 +43,7 @@ export function useAuth() {
     localStorage.removeItem('jt_token');
     localStorage.removeItem('jt_user');
     currentUser.value = null;
-    window.dispatchEvent(new CustomEvent('jt:auth-change'));
+    globalThis.dispatchEvent(new CustomEvent('jt:auth-change'));
   }
 
   return {

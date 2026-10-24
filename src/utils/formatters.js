@@ -3,14 +3,14 @@
  */
 
 export function formatCurrency(amount) {
-  if (amount === null || amount === undefined || isNaN(Number(amount))) {
+  if (amount === null || amount === undefined || Number.isNaN(Number(amount))) {
     return 'Rp 0';
   }
   return 'Rp ' + Number(amount).toLocaleString('id-ID');
 }
 
 export function formatRating(rating) {
-  if (rating === null || rating === undefined || isNaN(Number(rating))) {
+  if (rating === null || rating === undefined || Number.isNaN(Number(rating))) {
     return '0.0';
   }
   return Number(rating).toFixed(1);
