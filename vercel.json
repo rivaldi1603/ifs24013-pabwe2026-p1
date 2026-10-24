@@ -1,0 +1,32 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "jelajahtoba-backend": {
+      "root": "jelajahtoba-backend"
+    },
+    "jelajahtoba-frontend": {
+      "root": "jelajahtoba-frontend",
+      "framework": "vite"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api",
+      "destination": {
+        "service": "jelajahtoba-backend"
+      }
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "jelajahtoba-backend"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "jelajahtoba-frontend"
+      }
+    }
+  ]
+}
