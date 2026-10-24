@@ -13,6 +13,12 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.8",
+    "express": "^5.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "sql.js": "^1.15.1",
     "vue": "^3.5.43"
   },
   "devDependencies": {
