@@ -54,6 +54,7 @@ const routes = [
   },
   {
     path: '/auth/register',
+    alias: ['/auth/regiter'],
     name: 'register',
     component: LoginView,
     meta: { guestOnly: true }
@@ -61,6 +62,7 @@ const routes = [
   // Legacy paths -> canonical auth paths (query such as ?redirect= is preserved)
   { path: '/login', redirect: to => ({ path: '/auth/login', query: to.query }) },
   { path: '/register', redirect: to => ({ path: '/auth/register', query: to.query }) },
+  { path: '/regiter', redirect: to => ({ path: '/auth/regiter', query: to.query }) },
   { path: '/auth', redirect: '/auth/login' },
   { path: '/:pathMatch(.*)*', redirect: '/' }
 ];

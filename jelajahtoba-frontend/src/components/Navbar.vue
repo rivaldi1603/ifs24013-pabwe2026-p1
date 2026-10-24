@@ -2,9 +2,9 @@
   <header class="navbar-wrapper">
     <div class="container navbar-inner">
       <!-- Logo -->
-      <router-link to="/" class="brand-logo">
+      <router-link to="/" class="brand-logo" aria-label="JelajahToba Beranda">
         <div class="brand-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="icon-svg">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="icon-svg">
             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"></path>
             <circle cx="12" cy="9" r="2.5"></circle>
           </svg>
@@ -16,11 +16,11 @@
       </router-link>
 
       <!-- Desktop Nav -->
-      <nav class="nav-links">
+      <nav class="nav-links" aria-label="Navigasi Utama">
         <router-link to="/" class="nav-link" active-class="active">Beranda</router-link>
         <router-link to="/destinasi" class="nav-link" active-class="active">Destinasi</router-link>
         <router-link to="/jasa-lokal" class="nav-link nav-link-special" active-class="active">
-          <span class="pulse-dot"></span>
+          <span class="pulse-dot" aria-hidden="true"></span>
           Jasa Budaya & Homestay
         </router-link>
         <router-link to="/transportasi" class="nav-link" active-class="active">Jadwal Ferry</router-link>
@@ -37,7 +37,7 @@
             to="/admin"
             class="btn btn-admin btn-sm dashboard-btn"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"></path>
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"></path>
             </svg>
@@ -49,7 +49,7 @@
             to="/profil"
             class="btn btn-secondary btn-sm dashboard-btn"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
@@ -71,8 +71,8 @@
               {{ user.role === 'admin' ? 'ADMIN' : (user.role === 'partner' ? 'MITRA' : 'WISATAWAN') }}
             </span>
             <span class="user-name">{{ user.name.split(' ')[0] }}</span>
-            <button @click="handleLogout" class="btn-logout" title="Keluar">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button type="button" @click="handleLogout" class="btn-logout" title="Keluar" aria-label="Keluar dari akun">
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                 <polyline points="16 17 21 12 16 7"></polyline>
                 <line x1="21" y1="12" x2="9" y2="12"></line>
@@ -92,8 +92,8 @@
         </template>
 
         <!-- Mobile Menu Toggle -->
-        <button class="mobile-toggle" @click="mobileMenuOpen = !mobileMenuOpen" aria-label="Toggle Menu">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button type="button" class="mobile-toggle" @click="mobileMenuOpen = !mobileMenuOpen" aria-label="Buka menu navigasi" :aria-expanded="mobileMenuOpen">
+          <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line v-if="!mobileMenuOpen" x1="3" y1="12" x2="21" y2="12"></line>
             <line v-if="!mobileMenuOpen" x1="3" y1="6" x2="21" y2="6"></line>
             <line v-if="!mobileMenuOpen" x1="3" y1="18" x2="21" y2="18"></line>
@@ -207,8 +207,8 @@ function handleLogout() {
 
 .brand-tagline {
   font-size: 0.725rem;
-  color: var(--text-muted);
-  font-weight: 500;
+  color: #334155;
+  font-weight: 600;
 }
 
 .nav-links {

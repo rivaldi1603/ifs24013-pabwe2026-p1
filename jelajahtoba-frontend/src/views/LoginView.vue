@@ -4,7 +4,7 @@
       <!-- HEADER -->
       <div class="auth-header">
         <div class="brand-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px;">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px;">
             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"></path>
             <circle cx="12" cy="9" r="2.5"></circle>
           </svg>
@@ -19,13 +19,13 @@
       <div v-if="!isRegister" class="demo-box">
         <span class="demo-title">Akun Uji Coba Cepat (Evaluasi):</span>
         <div class="demo-buttons">
-          <button @click="fillLogin('admin@jelajahtoba.id', 'admin123')" class="demo-btn">
+          <button type="button" @click="fillLogin('admin@jelajahtoba.id', 'admin123')" class="demo-btn" aria-label="Isi otomatis akun admin">
             👑 Admin
           </button>
-          <button @click="fillLogin('hutaraja@jelajahtoba.id', 'mitra123')" class="demo-btn">
+          <button type="button" @click="fillLogin('hutaraja@jelajahtoba.id', 'mitra123')" class="demo-btn" aria-label="Isi otomatis akun mitra Hutaraja">
             🧶 Mitra Hutaraja
           </button>
-          <button @click="fillLogin('budi.traveler@gmail.com', 'user123')" class="demo-btn">
+          <button type="button" @click="fillLogin('budi.traveler@gmail.com', 'user123')" class="demo-btn" aria-label="Isi otomatis akun traveler">
             👤 Traveler
           </button>
         </div>
@@ -139,8 +139,8 @@ const router = useRouter();
 const route = useRoute();
 const { setUser } = useAuth();
 
-// Mode is derived from the URL: /auth/register -> register, otherwise login
-const isRegister = computed(() => route.path === '/auth/register');
+// Mode is derived from the URL: /auth/register or /auth/regiter -> register, otherwise login
+const isRegister = computed(() => route.path === '/auth/register' || route.path === '/auth/regiter' || route.path === '/register' || route.path === '/regiter');
 
 const name = ref('');
 const email = ref('');
@@ -281,7 +281,7 @@ async function handleSubmit() {
 }
 
 .auth-subtitle {
-  color: var(--text-muted);
+  color: #334155;
   font-size: 0.875rem;
   line-height: 1.4;
 }
@@ -296,10 +296,10 @@ async function handleSubmit() {
 
 .demo-title {
   display: block;
-  font-size: 0.725rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: #1e293b;
   margin-bottom: 0.45rem;
 }
 
@@ -314,7 +314,8 @@ async function handleSubmit() {
   border: 1px solid var(--border-subtle);
   font-size: 0.75rem;
   font-weight: 600;
-  padding: 0.3rem 0.6rem;
+  color: #0f172a;
+  padding: 0.35rem 0.65rem;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -342,45 +343,47 @@ async function handleSubmit() {
   font-family: var(--font-body);
   font-weight: 700;
   font-size: 0.95rem;
-  color: var(--text-muted);
+  color: #334155;
   cursor: pointer;
   transition: all var(--transition-fast);
   border-bottom: 2px solid transparent;
   margin-bottom: -2px;
 }
 
+.auth-tab.active {
+  color: #0369a1;
+  border-bottom-color: #0284c7;
+}
+
 .auth-notice {
   background: #eff6ff;
-  color: #1d4ed8;
+  color: #1e40af;
   border: 1px solid #bfdbfe;
   padding: 0.6rem 0.85rem;
   border-radius: var(--radius-md);
   font-size: 0.85rem;
   margin-bottom: 1rem;
+  font-weight: 500;
 }
 
 .auth-switch {
   text-align: center;
   margin-top: 1rem;
   font-size: 0.875rem;
-  color: var(--text-muted);
+  color: #334155;
 }
 
 .auth-switch a {
-  color: var(--primary-600);
+  color: #0369a1;
   font-weight: 700;
+  text-decoration: underline;
 }
 
 .field-hint {
   display: block;
   margin-top: 0.3rem;
   font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.auth-tab.active {
-  color: var(--primary-600);
-  border-color: var(--primary-600);
+  color: #334155;
 }
 
 .alert-error {

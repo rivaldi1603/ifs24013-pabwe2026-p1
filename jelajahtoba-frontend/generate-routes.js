@@ -18,8 +18,10 @@ const html = fs.readFileSync(indexPath, 'utf8');
 const routes = [
   'auth/login',
   'auth/register',
+  'auth/regiter',
   'login',
   'register',
+  'regiter',
   'dashboard',
   'profil',
   'profile',
