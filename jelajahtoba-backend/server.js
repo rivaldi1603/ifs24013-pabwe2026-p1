@@ -30,7 +30,7 @@ app.use((req, res, next) => {
 });
 
 // Health check
-app.get('/', (req, res) => {
+app.get(['/', '/api', '/api/health', '/health'], (req, res) => {
     res.json({
         name: 'JelajahToba API',
         version: '1.0.0',
@@ -51,20 +51,20 @@ app.get('/', (req, res) => {
     });
 });
 
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+// Register API Routes (support both /api/* and root /* for flexible reverse proxy / rewrites)
+const registerRoutes = (prefix = '') => {
+    app.use(`${prefix}/auth`, authRoutes);
+    app.use(`${prefix}/destinations`, destinationsRoutes);
+    app.use(`${prefix}/services`, servicesRoutes);
+    app.use(`${prefix}/transport`, transportRoutes);
+    app.use(`${prefix}/culinary`, culinaryRoutes);
+    app.use(`${prefix}/reviews`, reviewsRoutes);
+    app.use(`${prefix}/meta`, metaRoutes);
+    app.use(`${prefix}/articles`, articlesRoutes);
+};
 
-// Register API Routes
-app.use('/api/auth', authRoutes);
-app.use('/auth', authRoutes);
-app.use('/api/destinations', destinationsRoutes);
-app.use('/api/services', servicesRoutes);
-app.use('/api/transport', transportRoutes);
-app.use('/api/culinary', culinaryRoutes);
-app.use('/api/reviews', reviewsRoutes);
-app.use('/api/meta', metaRoutes);
-app.use('/api/articles', articlesRoutes);
+registerRoutes('/api');
+registerRoutes('');
 
 // 404 Handler
 app.use((req, res) => {
@@ -77,10 +77,15 @@ app.use((err, req, res, next) => {
     res.status(500).json({ success: false, message: 'Terjadi kesalahan internal pada server.', error: err.message });
 });
 
-app.listen(PORT, () => {
-    console.log(`======================================================`);
-    console.log(` JelajahToba Backend API is running on port ${PORT}`);
-    console.log(` URL: http://localhost:${PORT}`);
-    console.log(` Database: SQLite (database.sqlite)`);
-    console.log(`======================================================`);
-});
+if (!process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`======================================================`);
+        console.log(` JelajahToba Backend API is running on port ${PORT}`);
+        console.log(` URL: http://localhost:${PORT}`);
+        console.log(` Database: SQLite (database.sqlite)`);
+        console.log(`======================================================`);
+    });
+}
+
+module.exports = app;
+
