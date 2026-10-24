@@ -83,6 +83,20 @@ describe('formatters utility unit tests', () => {
       expect(slugify(undefined)).toBe('');
       expect(slugify(123)).toBe('');
     });
+
+    it('handles underscores, hyphens, and whitespace correctly', () => {
+      expect(slugify('Danau_Toba---Samosir\t2026\nIsland')).toBe('danau-toba-samosir-2026-island');
+      expect(slugify('---leading-and-trailing---')).toBe('leading-and-trailing');
+    });
+
+    it('is immune to catastrophic backtracking (ReDoS safe)', () => {
+      const longInput = 'a'.repeat(10000) + '---' + 'b'.repeat(10000);
+      const start = performance.now();
+      const result = slugify(longInput);
+      const elapsed = performance.now() - start;
+      expect(result).toBe(`${'a'.repeat(10000)}-${'b'.repeat(10000)}`);
+      expect(elapsed).toBeLessThan(200);
+    });
   });
 
   describe('getEstimatedPrice', () => {
