@@ -1,0 +1,13 @@
+{
+  "name": "jelajahtoba-root",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"bun run dev:backend\" \"bun run dev:frontend\"",
+    "dev:frontend": "bun --cwd jelajahtoba-frontend dev",
+    "dev:backend": "bun --cwd jelajahtoba-backend dev",
+    "build": "bun --cwd jelajahtoba-frontend build"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.6"
+  }
+}
