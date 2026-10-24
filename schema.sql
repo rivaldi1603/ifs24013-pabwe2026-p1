@@ -1,11 +1,3 @@
--- ====================================================================
--- SCHEMA DATABASE JELAYAHTOBA (DIREKTORI WISATA & JASA LOKAL DANAU TOBA)
--- Dibuat untuk Proyek 1 PABWE: Express.js (REST API) + SQLite + Vue.js
--- ====================================================================
-
-PRAGMA foreign_keys = ON;
-
--- 1. TABEL KABUPATEN (8 Wilayah Kawasan Danau Toba)
 CREATE TABLE IF NOT EXISTS regencies (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -15,7 +7,6 @@ CREATE TABLE IF NOT EXISTS regencies (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- 2. TABEL KATEGORI (Wisata, Jasa, Transportasi, Kuliner)
 CREATE TABLE IF NOT EXISTS categories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     slug TEXT NOT NULL UNIQUE,
@@ -26,7 +17,6 @@ CREATE TABLE IF NOT EXISTS categories (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- 3. TABEL PENGGUNA & AUTENTIKASI (Admin, Mitra Lokal, Wisatawan)
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -35,10 +25,11 @@ CREATE TABLE IF NOT EXISTS users (
     role TEXT NOT NULL DEFAULT 'user' CHECK(role IN ('admin', 'partner', 'user')),
     phone TEXT,
     organization TEXT,
+    avatar_url TEXT,
+    bio TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- 4. TABEL DESTINASI WISATA (Objek Wisata, Alam, Budaya, Geosite)
 CREATE TABLE IF NOT EXISTS destinations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -65,7 +56,6 @@ CREATE TABLE IF NOT EXISTS destinations (
     FOREIGN KEY (regency_id) REFERENCES regencies(id) ON DELETE RESTRICT
 );
 
--- 5. TABEL JASA LOKAL & PENGALAMAN BUDAYA (Fokus Nilai Tambah JelajahToba)
 CREATE TABLE IF NOT EXISTS services (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -96,7 +86,6 @@ CREATE TABLE IF NOT EXISTS services (
     FOREIGN KEY (regency_id) REFERENCES regencies(id) ON DELETE RESTRICT
 );
 
--- 6. TABEL TRANSPORTASI LOKAL & JADWAL FERRY
 CREATE TABLE IF NOT EXISTS transport_routes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -113,7 +102,6 @@ CREATE TABLE IF NOT EXISTS transport_routes (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- 7. TABEL KULINER KHAS TRADISIONAL
 CREATE TABLE IF NOT EXISTS culinary_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -126,7 +114,6 @@ CREATE TABLE IF NOT EXISTS culinary_items (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- 8. TABEL RESTORAN & RUMAH MAKAN LOKAL
 CREATE TABLE IF NOT EXISTS restaurants (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -146,7 +133,6 @@ CREATE TABLE IF NOT EXISTS restaurants (
     FOREIGN KEY (regency_id) REFERENCES regencies(id) ON DELETE RESTRICT
 );
 
--- 9. TABEL ARTIKEL & EDUKASI GEOPARK
 CREATE TABLE IF NOT EXISTS articles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
@@ -159,7 +145,6 @@ CREATE TABLE IF NOT EXISTS articles (
     FOREIGN KEY (regency_id) REFERENCES regencies(id) ON DELETE SET NULL
 );
 
--- 10. TABEL ULASAN & PENILAIAN PENGUNJUNG
 CREATE TABLE IF NOT EXISTS reviews (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     target_type TEXT NOT NULL CHECK(target_type IN ('destination', 'service')),
@@ -172,7 +157,6 @@ CREATE TABLE IF NOT EXISTS reviews (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- INDEXING UNTUK PERFORMA QUERY PENCARIAN & FILTERING
 CREATE INDEX IF NOT EXISTS idx_dest_category ON destinations(category_id);
 CREATE INDEX IF NOT EXISTS idx_dest_regency ON destinations(regency_id);
 CREATE INDEX IF NOT EXISTS idx_services_category ON services(category_id);

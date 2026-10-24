@@ -1,58 +1,25 @@
-<<<<<<< HEAD
-# dependencies
-node_modules
-*/node_modules
+# dependencies (bun / npm)
+node_modules/
 
-# test coverage
-coverage
-*/coverage
-*.lcov
-
-# build artifacts
-dist
-*/dist
-latest-app.zip
-trivy-results.sarif
-.trivy-cache
-
-# logs & env
-*.log
+# environment
 .env
 .env.*
 !.env.example
-=======
-# dependencies (bun install)
-node_modules
 
-# output
-out
-dist
-*.tgz
+# sqlite temporary files
+database.sqlite-shm
+database.sqlite-wal
 
-# code coverage
-coverage
+# test coverage
+coverage/
 *.lcov
 
+# build and security artifacts
+dist/
+latest-app.zip
+trivy-results.sarif
+.trivy-cache/
+
 # logs
-logs
-_.log
-report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
-
-# dotenv environment variable files
-.env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
-
-# caches
-.eslintcache
-.cache
-*.tsbuildinfo
-
-# IntelliJ based IDEs
-.idea
-
-# Finder (MacOS) folder config
-.DS_Store
->>>>>>> cbf709147d9d08262cb3bbb3d192989209efa886
+*.log
+logs/
