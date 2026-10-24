@@ -110,7 +110,7 @@
           {{ successMsg }}
         </div>
 
-        <button id="auth-submit" type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 1rem;" :disabled="loading">
+        <button id="btn-submit" name="btn-submit" type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 1rem;" :disabled="loading">
           {{ loading ? 'Memproses...' : (isRegister ? 'Daftar Sekarang' : 'Masuk ke Akun') }}
         </button>
 
