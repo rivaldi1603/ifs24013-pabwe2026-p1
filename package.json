@@ -1,15 +1,26 @@
 {
   "name": "jelajahtoba-root",
+  "type": "module",
   "private": true,
   "scripts": {
     "dev": "concurrently \"bun run dev:backend\" \"bun run dev:frontend\"",
     "dev:frontend": "bun --cwd jelajahtoba-frontend dev",
     "dev:backend": "bun --cwd jelajahtoba-backend dev",
     "build": "bun --cwd jelajahtoba-frontend build",
-    "test": "bun --cwd jelajahtoba-frontend test",
-    "test:coverage": "bun --cwd jelajahtoba-frontend test:coverage"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "vue": "^3.5.43"
   },
   "devDependencies": {
-    "concurrently": "^10.0.6"
+    "@testing-library/jest-dom": "^7.0.1",
+    "@vitejs/plugin-vue": "^6.0.9",
+    "@vitest/coverage-v8": "^5.0.2",
+    "@vue/test-utils": "^2.5.1",
+    "concurrently": "^10.0.6",
+    "jsdom": "^30.1.1",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.2"
   }
 }
