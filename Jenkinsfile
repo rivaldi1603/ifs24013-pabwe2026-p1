@@ -49,10 +49,6 @@ pipeline {
                         echo "Installing jelajahtoba-frontend dependencies..."
                         (cd jelajahtoba-frontend && bun install)
                     fi
-                    if [ -d "jelajahtoba-backend" ]; then
-                        echo "Installing jelajahtoba-backend dependencies..."
-                        (cd jelajahtoba-backend && bun install)
-                    fi
 
                     echo "=== Dependencies Installed ==="
                 '''
