@@ -29,12 +29,23 @@ const routes = [
   },
   { 
     path: '/profil', 
+    alias: ['/profile', '/settings', '/pengaturan'],
     name: 'profile', 
     component: ProfileView,
     meta: { requiresAuth: true }
   },
-  { path: '/dashboard', name: 'dashboard', component: DashboardView },
-  { path: '/login', name: 'login', component: LoginView },
+  { 
+    path: '/dashboard', 
+    name: 'dashboard', 
+    component: DashboardView,
+    meta: { requiresAuth: true }
+  },
+  { 
+    path: '/login', 
+    alias: ['/auth/login'],
+    name: 'login', 
+    component: LoginView 
+  },
   { path: '/:pathMatch(.*)*', redirect: '/' }
 ];
 
@@ -71,7 +82,6 @@ router.beforeEach((to, from, next) => {
 
     // Role-specific check (e.g. only admin can access /admin)
     if (to.meta.role && user.role !== to.meta.role) {
-      alert('Akses Ditolak: Halaman ini hanya dapat diakses oleh Administrator JelajahToba.');
       return next({ path: '/profil' });
     }
   }

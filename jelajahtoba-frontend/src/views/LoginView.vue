@@ -59,13 +59,13 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Alamat Email</label>
-          <input v-model="email" type="email" class="form-input" placeholder="nama@email.com" required />
+          <label class="form-label" for="username">Alamat Email / Username</label>
+          <input id="username" name="username" v-model="email" type="text" class="form-input" placeholder="admin@jelajahtoba.id atau admin" required autocomplete="username" />
         </div>
 
         <div class="form-group">
-          <label class="form-label">Kata Sandi</label>
-          <input v-model="password" type="password" class="form-input" placeholder="••••••••" required />
+          <label class="form-label" for="password">Kata Sandi</label>
+          <input id="password" name="password" v-model="password" type="password" class="form-input" placeholder="••••••••" required autocomplete="current-password" />
         </div>
 
         <div v-if="isRegister" class="form-group">

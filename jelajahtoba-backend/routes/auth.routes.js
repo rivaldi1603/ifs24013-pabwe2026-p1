@@ -9,12 +9,20 @@ const { JWT_SECRET, verifyToken, requireRole } = require('../middleware/auth');
 // POST /api/auth/login
 router.post('/login', (req, res) => {
     try {
-        const { email, password } = req.body;
-        if (!email || !password) {
-            return res.status(400).json({ success: false, message: 'Email dan password wajib diisi.' });
+        const rawIdentifier = req.body.email || req.body.username || '';
+        const password = req.body.password || '';
+        if (!rawIdentifier || !password) {
+            return res.status(400).json({ success: false, message: 'Email/username dan password wajib diisi.' });
         }
 
-        const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email.trim().toLowerCase());
+        const identifier = rawIdentifier.trim().toLowerCase();
+        let user = db.prepare('SELECT * FROM users WHERE email = ?').get(identifier);
+        
+        // Allow login using username 'admin' matching the admin account
+        if (!user && (identifier === 'admin' || identifier === 'administrator')) {
+            user = db.prepare("SELECT * FROM users WHERE role = 'admin' LIMIT 1").get();
+        }
+
         if (!user) {
             return res.status(401).json({ success: false, message: 'Email atau password salah.' });
         }
