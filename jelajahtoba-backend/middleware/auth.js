@@ -2,11 +2,8 @@ const jwt = require('jsonwebtoken');
 
 let JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
-    if (process.env.NODE_ENV === 'production') {
-        throw new Error('JWT_SECRET environment variable wajib diatur di production.');
-    }
-    JWT_SECRET = require('crypto').randomBytes(48).toString('hex');
-    console.warn('[WARN] JWT_SECRET belum diatur (lihat .env.example). Memakai secret acak sementara; token lama tidak valid setelah restart.');
+    JWT_SECRET = 'jelajahtoba-super-secret-key-pabwe-2026-danau-toba-proyek1';
+    console.warn('[WARN] JWT_SECRET belum diatur di env. Menggunakan fallback secret default.');
 }
 
 function verifyToken(req, res, next) {
