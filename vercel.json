@@ -34,17 +34,16 @@
       }
     },
     {
-      "source": "/(.*\\.[a-zA-Z0-9]+)",
+      "source": "/((?!api/|assets/|.*\\.[\\w]+$).*)",
       "destination": {
         "service": "jelajahtoba-frontend",
-        "path": "/$1"
+        "path": "/index.html"
       }
     },
     {
       "source": "/(.*)",
       "destination": {
-        "service": "jelajahtoba-frontend",
-        "path": "/index.html"
+        "service": "jelajahtoba-frontend"
       }
     }
   ]
