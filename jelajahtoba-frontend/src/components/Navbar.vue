@@ -83,8 +83,11 @@
 
         <!-- Guest state -->
         <template v-else>
-          <router-link to="/login" class="btn btn-primary btn-sm">
-            Masuk / Daftar
+          <router-link id="nav-login" to="/auth/login" class="btn btn-secondary btn-sm">
+            Masuk
+          </router-link>
+          <router-link id="nav-register" to="/auth/register" class="btn btn-primary btn-sm">
+            Daftar
           </router-link>
         </template>
 
@@ -118,8 +121,9 @@
           Keluar ({{ user.name }})
         </button>
       </div>
-      <div v-else style="margin-top: 10px;">
-        <router-link to="/login" class="btn btn-primary" style="width: 100%;" @click="mobileMenuOpen = false">Masuk / Daftar</router-link>
+      <div v-else style="margin-top: 10px; display: flex; gap: 8px;">
+        <router-link to="/auth/login" class="btn btn-secondary" style="flex: 1;" @click="mobileMenuOpen = false">Masuk</router-link>
+        <router-link to="/auth/register" class="btn btn-primary" style="flex: 1;" @click="mobileMenuOpen = false">Daftar</router-link>
       </div>
     </div>
   </header>
@@ -137,7 +141,7 @@ const { currentUser: user, logoutUser } = useAuth();
 function handleLogout() {
   logoutUser();
   mobileMenuOpen.value = false;
-  router.push('/login');
+  router.push('/auth/login');
 }
 </script>
 

@@ -40,12 +40,22 @@ const routes = [
     component: DashboardView,
     meta: { requiresAuth: true }
   },
-  { 
-    path: '/login', 
-    alias: ['/auth/login'],
-    name: 'login', 
-    component: LoginView 
+  {
+    path: '/auth/login',
+    name: 'login',
+    component: LoginView,
+    meta: { guestOnly: true }
   },
+  {
+    path: '/auth/register',
+    name: 'register',
+    component: LoginView,
+    meta: { guestOnly: true }
+  },
+  // Legacy paths -> canonical auth paths (query such as ?redirect= is preserved)
+  { path: '/login', redirect: to => ({ path: '/auth/login', query: to.query }) },
+  { path: '/register', redirect: to => ({ path: '/auth/register', query: to.query }) },
+  { path: '/auth', redirect: '/auth/login' },
   { path: '/:pathMatch(.*)*', redirect: '/' }
 ];
 
@@ -77,7 +87,7 @@ router.beforeEach((to, from, next) => {
   // Protected Route Check
   if (to.meta.requiresAuth) {
     if (!token || !user) {
-      return next({ path: '/login', query: { redirect: to.fullPath } });
+      return next({ path: '/auth/login', query: { redirect: to.fullPath } });
     }
 
     // Role-specific check (e.g. only admin can access /admin)
@@ -86,8 +96,8 @@ router.beforeEach((to, from, next) => {
     }
   }
 
-  // If already logged in and going to /login, redirect cleanly
-  if (to.path === '/login' && token && user) {
+  // If already logged in and opening login/register, redirect cleanly
+  if (to.meta.guestOnly && token && user) {
     if (user.role === 'admin') {
       return next({ path: '/admin' });
     }

@@ -31,79 +31,106 @@
         </div>
       </div>
 
-      <!-- TABS -->
-      <div class="auth-tabs">
-        <button
-          type="button"
+      <!-- TABS (real links to /auth/login and /auth/register) -->
+      <nav class="auth-tabs" aria-label="Pilih Masuk atau Daftar">
+        <router-link
+          id="tab-login"
           class="auth-tab"
           :class="{ active: !isRegister }"
-          @click="isRegister = false"
+          :to="{ path: '/auth/login', query: route.query }"
         >
           Masuk
-        </button>
-        <button
-          type="button"
+        </router-link>
+        <router-link
+          id="tab-register"
           class="auth-tab"
           :class="{ active: isRegister }"
-          @click="isRegister = true"
+          :to="{ path: '/auth/register', query: route.query }"
         >
           Daftar Akun
-        </button>
-      </div>
+        </router-link>
+      </nav>
+
+      <p v-if="route.query.redirect && !isRegister" class="auth-notice">
+        Silakan masuk terlebih dahulu untuk melanjutkan.
+      </p>
 
       <!-- FORM -->
-      <form @submit.prevent="handleSubmit" class="auth-form">
+      <form @submit.prevent="handleSubmit" class="auth-form" novalidate>
         <div v-if="isRegister" class="form-group">
-          <label class="form-label">Nama Lengkap</label>
-          <input v-model="name" type="text" class="form-input" placeholder="Nama Anda atau Komunitas" required />
+          <label class="form-label" for="reg-name">Nama Lengkap</label>
+          <input id="reg-name" name="name" v-model="name" type="text" class="form-input" placeholder="Nama Anda atau Komunitas" required autocomplete="name" />
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="username">Alamat Email / Username</label>
-          <input id="username" name="username" v-model="email" type="text" class="form-input" placeholder="admin@jelajahtoba.id atau admin" required autocomplete="username" />
+          <label class="form-label" for="username">{{ isRegister ? 'Alamat Email' : 'Alamat Email / Username' }}</label>
+          <input
+            id="username"
+            name="username"
+            v-model="email"
+            :type="isRegister ? 'email' : 'text'"
+            class="form-input"
+            :placeholder="isRegister ? 'nama@email.com' : 'admin@jelajahtoba.id atau admin'"
+            required
+            autocomplete="username"
+          />
         </div>
 
         <div class="form-group">
           <label class="form-label" for="password">Kata Sandi</label>
-          <input id="password" name="password" v-model="password" type="password" class="form-input" placeholder="••••••••" required autocomplete="current-password" />
+          <input
+            id="password"
+            name="password"
+            v-model="password"
+            type="password"
+            class="form-input"
+            placeholder="••••••••"
+            required
+            :minlength="isRegister ? 6 : undefined"
+            :autocomplete="isRegister ? 'new-password' : 'current-password'"
+          />
+          <small v-if="isRegister" class="field-hint">Minimal 6 karakter.</small>
         </div>
 
         <div v-if="isRegister" class="form-group">
-          <label class="form-label">Nomor WhatsApp / Telepon</label>
-          <input v-model="phone" type="text" class="form-input" placeholder="081234567890" />
+          <label class="form-label" for="reg-phone">Nomor WhatsApp / Telepon (opsional)</label>
+          <input id="reg-phone" name="phone" v-model="phone" type="tel" class="form-input" placeholder="081234567890" autocomplete="tel" />
         </div>
 
         <div v-if="isRegister" class="form-group">
-          <label class="form-label">Jenis Akun</label>
-          <select v-model="role" class="form-select">
-            <option value="user">Wisatawan / Traveler</option>
-            <option value="partner">Mitra Lokal / Pemilik Homestay / Pemandu</option>
-          </select>
+          <label class="form-label" for="reg-org">Organisasi / Usaha Komunitas (opsional)</label>
+          <input id="reg-org" name="organization" v-model="organization" type="text" class="form-input" placeholder="Contoh: Pokdarwis Lumban Suhi-suhi" autocomplete="organization" />
         </div>
 
-        <div v-if="isRegister && role === 'partner'" class="form-group">
-          <label class="form-label">Nama Organisasi / Usaha Komunitas</label>
-          <input v-model="organization" type="text" class="form-input" placeholder="Contoh: Pokdarwis Lumban Suhi-suhi" />
-        </div>
-
-        <div v-if="errorMsg" class="alert-error">
+        <div v-if="errorMsg" class="alert-error" role="alert">
           {{ errorMsg }}
         </div>
 
-        <div v-if="successMsg" class="alert-success">
+        <div v-if="successMsg" class="alert-success" role="status">
           {{ successMsg }}
         </div>
 
-        <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 1rem;" :disabled="loading">
+        <button id="auth-submit" type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 1rem;" :disabled="loading">
           {{ loading ? 'Memproses...' : (isRegister ? 'Daftar Sekarang' : 'Masuk ke Akun') }}
         </button>
+
+        <p class="auth-switch">
+          <template v-if="isRegister">
+            Sudah punya akun?
+            <router-link :to="{ path: '/auth/login', query: route.query }">Masuk di sini</router-link>
+          </template>
+          <template v-else>
+            Belum punya akun?
+            <router-link :to="{ path: '/auth/register', query: route.query }">Daftar gratis</router-link>
+          </template>
+        </p>
       </form>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api } from '../api';
 import { useAuth } from '../auth';
@@ -112,28 +139,67 @@ const router = useRouter();
 const route = useRoute();
 const { setUser } = useAuth();
 
-const isRegister = ref(false);
+// Mode is derived from the URL: /auth/register -> register, otherwise login
+const isRegister = computed(() => route.path === '/auth/register');
+
 const name = ref('');
 const email = ref('');
 const password = ref('');
 const phone = ref('');
-const role = ref('user');
 const organization = ref('');
 
 const loading = ref(false);
 const errorMsg = ref('');
 const successMsg = ref('');
 
+watch(isRegister, () => {
+  errorMsg.value = '';
+  successMsg.value = '';
+});
+
+// Only allow same-origin absolute paths (blocks open redirects like //evil.com or https://evil.com)
+function safeRedirect(target) {
+  return typeof target === 'string' && target.startsWith('/') && !target.startsWith('//') && !target.startsWith('/auth/')
+    ? target
+    : null;
+}
+
+// Linear-time email check (no regex): one '@', non-empty local part, dot inside the domain
+function isValidEmail(value) {
+  if (value.length > 254 || value.includes(' ')) return false;
+  const at = value.indexOf('@');
+  if (at < 1 || at !== value.lastIndexOf('@')) return false;
+  const domain = value.slice(at + 1);
+  const dot = domain.lastIndexOf('.');
+  return dot > 0 && dot < domain.length - 1;
+}
+
 function fillLogin(em, pw) {
   email.value = em;
   password.value = pw;
-  isRegister.value = false;
 }
 
 async function handleSubmit() {
-  loading.value = true;
   errorMsg.value = '';
   successMsg.value = '';
+
+  if (isRegister.value) {
+    if (!name.value.trim()) {
+      errorMsg.value = 'Nama lengkap wajib diisi.';
+      return;
+    }
+    if (!isValidEmail(email.value.trim())) {
+      errorMsg.value = 'Format email tidak valid.';
+      return;
+    }
+    if (password.value.length < 6) {
+      errorMsg.value = 'Kata sandi minimal 6 karakter.';
+      return;
+    }
+  }
+
+  loading.value = true;
+  const redirectTo = safeRedirect(route.query.redirect);
 
   try {
     if (isRegister.value) {
@@ -142,15 +208,14 @@ async function handleSubmit() {
         email: email.value,
         password: password.value,
         phone: phone.value,
-        role: role.value,
         organization: organization.value
       });
 
       if (res.success) {
         setUser(res.user, res.token);
-        successMsg.value = 'Registrasi berhasil! Mengalihkan ke profil Anda...';
+        successMsg.value = 'Registrasi berhasil! Mengalihkan...';
         setTimeout(() => {
-          router.push('/profil');
+          router.push(redirectTo || '/profil');
         }, 500);
       } else {
         errorMsg.value = res.message || 'Registrasi gagal.';
@@ -160,7 +225,7 @@ async function handleSubmit() {
       if (res.success) {
         setUser(res.user, res.token);
         successMsg.value = 'Login berhasil! Mengalihkan...';
-        const target = res.user.role === 'admin' ? '/admin' : (route.query.redirect || '/profil');
+        const target = redirectTo || (res.user.role === 'admin' ? '/admin' : '/profil');
         setTimeout(() => {
           router.push(target);
         }, 400);
@@ -268,6 +333,9 @@ async function handleSubmit() {
 
 .auth-tab {
   flex: 1;
+  display: block;
+  text-align: center;
+  text-decoration: none;
   padding: 0.65rem;
   border: none;
   background: transparent;
@@ -279,6 +347,35 @@ async function handleSubmit() {
   transition: all var(--transition-fast);
   border-bottom: 2px solid transparent;
   margin-bottom: -2px;
+}
+
+.auth-notice {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.auth-switch {
+  text-align: center;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.auth-switch a {
+  color: var(--primary-600);
+  font-weight: 700;
+}
+
+.field-hint {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
 }
 
 .auth-tab.active {

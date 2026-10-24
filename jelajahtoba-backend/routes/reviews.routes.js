@@ -55,10 +55,10 @@ router.get('/', (req, res) => {
     }
 });
 
-// POST /api/reviews (Submit new review)
-router.post('/', optionalAuth, (req, res) => {
+// POST /api/reviews (Submit new review - login required)
+router.post('/', verifyToken, (req, res) => {
     try {
-        const { target_type, target_id, rating, review_text, reviewer_name } = req.body;
+        const { target_type, target_id, rating, review_text } = req.body;
 
         if (!target_type || !target_id || rating === undefined || !review_text) {
             return res.status(400).json({ success: false, message: 'Jenis target, ID target, rating, dan ulasan wajib diisi.' });
@@ -73,8 +73,8 @@ router.post('/', optionalAuth, (req, res) => {
             return res.status(400).json({ success: false, message: 'Rating harus berupa angka antara 1.0 sampai 5.0.' });
         }
 
-        const name = (req.user && req.user.name) ? req.user.name : (reviewer_name ? reviewer_name.trim() : 'Pengunjung JelajahToba');
-        const userId = req.user ? req.user.id : null;
+        const name = req.user.name;
+        const userId = req.user.id;
 
         const insertStmt = db.prepare(`
             INSERT INTO reviews (target_type, target_id, reviewer_name, user_id, rating, review_text, created_at)

@@ -10,7 +10,23 @@
         Memberikan ulasan untuk: <strong>{{ targetTitle }}</strong>
       </p>
 
-      <form @submit.prevent="handleSubmit" class="modal-form">
+      <!-- Login gate: only registered users may post reviews -->
+      <div v-if="!currentUser" class="login-gate">
+        <p class="login-gate-text">
+          Anda perlu masuk terlebih dahulu untuk menulis ulasan dan memberi bintang.
+        </p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" @click="close">Nanti Saja</button>
+          <router-link id="review-login" :to="{ path: '/auth/login', query: { redirect: route.fullPath } }" class="btn btn-primary" @click="close">
+            Masuk
+          </router-link>
+          <router-link id="review-register" :to="{ path: '/auth/register', query: { redirect: route.fullPath } }" class="btn btn-secondary" @click="close">
+            Daftar
+          </router-link>
+        </div>
+      </div>
+
+      <form v-else @submit.prevent="handleSubmit" class="modal-form">
         <!-- Rating Stars Selection -->
         <div class="form-group">
           <label class="form-label">Penilaian Bintang (1 - 5):</label>
@@ -38,6 +54,7 @@
             class="form-input"
             placeholder="Contoh: Budi Santoso / Turis Jakarta"
             required
+            readonly
           />
         </div>
 
@@ -69,6 +86,7 @@
 
 <script setup>
 import { ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { api } from '../api';
 import { useAuth } from '../auth';
 
@@ -90,6 +108,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'review-submitted']);
 const { currentUser } = useAuth();
+const route = useRoute();
 
 const rating = ref(5);
 const reviewerName = ref('');
@@ -145,6 +164,16 @@ async function handleSubmit() {
 </script>
 
 <style scoped>
+.login-gate-text {
+  margin: 0.5rem 0 1.25rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.login-gate .btn {
+  text-decoration: none;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;

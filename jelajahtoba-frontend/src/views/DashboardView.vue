@@ -14,7 +14,7 @@ const { currentUser: user } = useAuth();
 
 onMounted(() => {
   if (!user.value) {
-    router.replace('/login');
+    router.replace('/auth/login');
   } else if (user.value.role === 'admin') {
     router.replace('/admin');
   } else {

@@ -6,6 +6,16 @@ const jwt = require('jsonwebtoken');
 const db = require('../db');
 const { JWT_SECRET, verifyToken, requireRole } = require('../middleware/auth');
 
+// Linear-time email check (no regex, avoids ReDoS): one '@', non-empty local part, dot inside the domain
+function isValidEmail(value) {
+    if (value.length > 254 || /\s/.test(value)) return false;
+    const at = value.indexOf('@');
+    if (at < 1 || at !== value.lastIndexOf('@')) return false;
+    const domain = value.slice(at + 1);
+    const dot = domain.lastIndexOf('.');
+    return dot > 0 && dot < domain.length - 1;
+}
+
 // POST /api/auth/login
 router.post('/login', (req, res) => {
     try {
@@ -74,6 +84,18 @@ router.post('/register', (req, res) => {
         const { name, email, password, phone, organization } = req.body;
         if (!name || !email || !password) {
             return res.status(400).json({ success: false, message: 'Nama, email, dan password wajib diisi.' });
+        }
+
+        if (typeof name !== 'string' || typeof email !== 'string' || typeof password !== 'string' || !name.trim()) {
+            return res.status(400).json({ success: false, message: 'Data registrasi tidak valid.' });
+        }
+
+        if (!isValidEmail(email.trim())) {
+            return res.status(400).json({ success: false, message: 'Format email tidak valid.' });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({ success: false, message: 'Password minimal 6 karakter.' });
         }
 
         const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email.trim().toLowerCase());
