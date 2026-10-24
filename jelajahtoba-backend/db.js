@@ -63,9 +63,10 @@ function createSqlJsWrapper(wasmDb) {
   };
 }
 
-// Di lingkungan Vercel serverless, gunakan sql.js (WebAssembly) langsung agar bebas dari error native binary C++ (Module did not self-register)
+// Di lingkungan Vercel serverless, gunakan sql-wasm-inline (WebAssembly inlined)
+// Ini 100% bebas dari external .wasm file path error dan native C++ binary error
 if (process.env.VERCEL) {
-  const initSqlJs = require('sql.js');
+  const initSqlJs = require('sql.js/dist/sql-wasm-inline.js');
   dbReady = (async () => {
     try {
       const SQL = await initSqlJs();
@@ -81,22 +82,23 @@ if (process.env.VERCEL) {
         }
       }
       dbInstance = createSqlJsWrapper(wasmDb);
-      console.log('[JelajahToba] Vercel WebAssembly SQLite engine initialized.');
+      console.log('[JelajahToba] Vercel inline WebAssembly SQLite engine initialized.');
     } catch (e) {
-      console.error('[JelajahToba] Failed to initialize sql.js on Vercel:', e);
+      console.error('[JelajahToba] Failed to initialize inline sql.js on Vercel:', e);
     }
   })();
 } else {
-  // Di lingkungan server persistent (Delcom DWS / Docker / Local), gunakan better-sqlite3
+  // Di lingkungan server persistent (Delcom DWS / Docker / Local), gunakan better-sqlite3 jika tersedia
   try {
-    const Database = require('better-sqlite3');
+    const mod = 'better-sqlite3';
+    const Database = require(mod);
     const betterDb = new Database(dbPath);
     betterDb.pragma('foreign_keys = ON');
     betterDb.pragma('journal_mode = WAL');
     dbInstance = betterDb;
   } catch (nativeErr) {
-    console.warn('[JelajahToba] better-sqlite3 unavailable, falling back to sql.js:', nativeErr.message);
-    const initSqlJs = require('sql.js');
+    console.warn('[JelajahToba] better-sqlite3 unavailable, falling back to inline sql.js:', nativeErr.message);
+    const initSqlJs = require('sql.js/dist/sql-wasm-inline.js');
     dbReady = (async () => {
       const SQL = await initSqlJs();
       let buffer = fs.existsSync(dbPath) ? fs.readFileSync(dbPath) : null;

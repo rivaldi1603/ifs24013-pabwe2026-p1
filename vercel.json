@@ -3,7 +3,8 @@
   "services": {
     "jelajahtoba-backend": {
       "root": "jelajahtoba-backend",
-      "framework": "express"
+      "framework": "express",
+      "entrypoint": "server.js"
     },
     "jelajahtoba-frontend": {
       "root": "jelajahtoba-frontend",
@@ -14,13 +15,15 @@
     {
       "source": "/api",
       "destination": {
-        "service": "jelajahtoba-backend"
+        "service": "jelajahtoba-backend",
+        "path": "/api"
       }
     },
     {
       "source": "/api/(.*)",
       "destination": {
-        "service": "jelajahtoba-backend"
+        "service": "jelajahtoba-backend",
+        "path": "/api/$1"
       }
     },
     {
