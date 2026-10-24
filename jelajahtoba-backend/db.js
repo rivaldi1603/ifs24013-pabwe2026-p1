@@ -1,77 +1,135 @@
-const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 
-let db;
-try {
-  let dbPath = path.join(__dirname, 'database.sqlite');
+let dbInstance = null;
+let dbReady = null;
 
-  // Di lingkungan Vercel, filesystem root read-only, salin atau inisialisasi di /tmp agar dapat ditulisi
-  if (process.env.VERCEL) {
-    const tmpDbPath = path.join('/tmp', 'database.sqlite');
-    if (!fs.existsSync(tmpDbPath)) {
-      if (fs.existsSync(dbPath)) {
-        try {
-          fs.copyFileSync(dbPath, tmpDbPath);
-        } catch (e) {
-          console.error('Failed to copy database to /tmp:', e);
+const dbPath = path.join(__dirname, 'database.sqlite');
+
+function createSqlJsWrapper(wasmDb) {
+  return {
+    prepare: (sql) => {
+      return {
+        all: (...args) => {
+          const params = args.length === 1 && Array.isArray(args[0]) ? args[0] : args;
+          const stmt = wasmDb.prepare(sql);
+          stmt.bind(params);
+          const rows = [];
+          while (stmt.step()) {
+            rows.push(stmt.getAsObject());
+          }
+          stmt.free();
+          return rows;
+        },
+        get: (...args) => {
+          const params = args.length === 1 && Array.isArray(args[0]) ? args[0] : args;
+          const stmt = wasmDb.prepare(sql);
+          stmt.bind(params);
+          let row = undefined;
+          if (stmt.step()) {
+            row = stmt.getAsObject();
+          }
+          stmt.free();
+          return row;
+        },
+        run: (...args) => {
+          const params = args.length === 1 && Array.isArray(args[0]) ? args[0] : args;
+          wasmDb.run(sql, params);
+          let lastId = 0;
+          try {
+            const res = wasmDb.exec('SELECT last_insert_rowid()');
+            lastId = res[0]?.values[0][0] || 0;
+          } catch (e) {}
+          const changes = wasmDb.getRowsModified();
+          return { lastInsertRowid: lastId, changes };
         }
-      }
-    }
-    dbPath = tmpDbPath;
-  }
-
-  db = new Database(dbPath);
-  db.pragma('foreign_keys = ON');
-  if (process.env.VERCEL) {
-    db.pragma('journal_mode = DELETE');
-  } else {
-    db.pragma('journal_mode = WAL');
-  }
-
-  // Create tables if they do not exist yet (idempotent)
-  const schemaPath = path.join(__dirname, 'schema.sql');
-  if (fs.existsSync(schemaPath)) {
-    try {
-      db.exec(fs.readFileSync(schemaPath, 'utf8'));
-    } catch (e) {
-      console.error('Error executing schema.sql:', e.message);
-    }
-  }
-
-  // Auto seed if tables are empty
-  try {
-    const destCheck = db.prepare('SELECT count(*) as count FROM destinations').get();
-    if (!destCheck || destCheck.count === 0) {
-      const seedPath = path.join(__dirname, 'seed.sql');
-      if (fs.existsSync(seedPath)) {
-        db.exec(fs.readFileSync(seedPath, 'utf8'));
-        console.log('Seeded database successfully!');
-      }
-    }
-  } catch (e) {
-    const seedPath = path.join(__dirname, 'seed.sql');
-    if (fs.existsSync(seedPath)) {
+      };
+    },
+    transaction: (fn) => (...args) => {
+      wasmDb.run('BEGIN TRANSACTION');
       try {
-        db.exec(fs.readFileSync(seedPath, 'utf8'));
-        console.log('Fallback seeded database successfully!');
-      } catch (seedErr) {
-        console.error('Auto-seed error:', seedErr.message);
+        const res = fn(...args);
+        wasmDb.run('COMMIT');
+        return res;
+      } catch (err) {
+        wasmDb.run('ROLLBACK');
+        throw err;
       }
+    },
+    exec: (sql) => wasmDb.exec(sql),
+    pragma: (cmd) => {
+      try { wasmDb.run(`PRAGMA ${cmd}`); } catch (e) {}
     }
-  }
-} catch (err) {
-  console.error('Critical database initialization error:', err);
-  db = {
-    prepare: () => ({
-      get: () => ({ count: 0 }),
-      all: () => [],
-      run: () => ({ lastInsertRowid: 1, changes: 1 })
-    }),
-    exec: () => {},
-    pragma: () => {}
   };
 }
 
-module.exports = db;
+// Di lingkungan Vercel serverless, gunakan sql.js (WebAssembly) langsung agar bebas dari error native binary C++ (Module did not self-register)
+if (process.env.VERCEL) {
+  const initSqlJs = require('sql.js');
+  dbReady = (async () => {
+    try {
+      const SQL = await initSqlJs();
+      let buffer = null;
+      if (fs.existsSync(dbPath)) {
+        buffer = fs.readFileSync(dbPath);
+      }
+      const wasmDb = buffer ? new SQL.Database(buffer) : new SQL.Database();
+      if (!buffer) {
+        const seedPath = path.join(__dirname, 'seed.sql');
+        if (fs.existsSync(seedPath)) {
+          wasmDb.run(fs.readFileSync(seedPath, 'utf8'));
+        }
+      }
+      dbInstance = createSqlJsWrapper(wasmDb);
+      console.log('[JelajahToba] Vercel WebAssembly SQLite engine initialized.');
+    } catch (e) {
+      console.error('[JelajahToba] Failed to initialize sql.js on Vercel:', e);
+    }
+  })();
+} else {
+  // Di lingkungan server persistent (Delcom DWS / Docker / Local), gunakan better-sqlite3
+  try {
+    const Database = require('better-sqlite3');
+    const betterDb = new Database(dbPath);
+    betterDb.pragma('foreign_keys = ON');
+    betterDb.pragma('journal_mode = WAL');
+    dbInstance = betterDb;
+  } catch (nativeErr) {
+    console.warn('[JelajahToba] better-sqlite3 unavailable, falling back to sql.js:', nativeErr.message);
+    const initSqlJs = require('sql.js');
+    dbReady = (async () => {
+      const SQL = await initSqlJs();
+      let buffer = fs.existsSync(dbPath) ? fs.readFileSync(dbPath) : null;
+      const wasmDb = buffer ? new SQL.Database(buffer) : new SQL.Database();
+      dbInstance = createSqlJsWrapper(wasmDb);
+    })();
+  }
+}
 
+const db = {
+  get ready() {
+    return dbReady;
+  },
+  prepare: (sql) => {
+    if (!dbInstance) {
+      throw new Error('Database is not initialized yet. Please wait for db.ready.');
+    }
+    return dbInstance.prepare(sql);
+  },
+  transaction: (fn) => {
+    if (!dbInstance) {
+      throw new Error('Database is not initialized yet.');
+    }
+    return dbInstance.transaction(fn);
+  },
+  exec: (sql) => {
+    if (!dbInstance) return;
+    return dbInstance.exec(sql);
+  },
+  pragma: (cmd) => {
+    if (!dbInstance) return;
+    return dbInstance.pragma(cmd);
+  }
+};
+
+module.exports = db;
