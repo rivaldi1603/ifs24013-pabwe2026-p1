@@ -27,9 +27,24 @@
       }
     },
     {
+      "source": "/assets/(.*)",
+      "destination": {
+        "service": "jelajahtoba-frontend",
+        "path": "/assets/$1"
+      }
+    },
+    {
+      "source": "/(.*\\.[a-zA-Z0-9]+)",
+      "destination": {
+        "service": "jelajahtoba-frontend",
+        "path": "/$1"
+      }
+    },
+    {
       "source": "/(.*)",
       "destination": {
-        "service": "jelajahtoba-frontend"
+        "service": "jelajahtoba-frontend",
+        "path": "/index.html"
       }
     }
   ]

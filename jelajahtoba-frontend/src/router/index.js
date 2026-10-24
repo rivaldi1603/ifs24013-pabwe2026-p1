@@ -29,8 +29,14 @@ const routes = [
   },
   { 
     path: '/profil', 
-    alias: ['/profile', '/settings', '/pengaturan'],
+    alias: ['/profile', '/pengaturan'],
     name: 'profile', 
+    component: ProfileView,
+    meta: { requiresAuth: true }
+  },
+  { 
+    path: '/settings', 
+    name: 'settings', 
     component: ProfileView,
     meta: { requiresAuth: true }
   },
