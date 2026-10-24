@@ -2,12 +2,8 @@ import { ref } from 'vue';
 
 const currentUser = ref(null);
 
-function getStorage() {
-  return globalThis[['local', 'Storage'].join('')];
-}
-
 function loadUserFromStorage() {
-  const stored = getStorage().getItem('jt_user');
+  const stored = localStorage.getItem('jt_user');
   if (stored) {
     try {
       currentUser.value = JSON.parse(stored);
@@ -25,8 +21,8 @@ loadUserFromStorage();
 globalThis.addEventListener('storage', loadUserFromStorage);
 globalThis.addEventListener('jt:auth-change', loadUserFromStorage);
 globalThis.addEventListener('jt:unauthorized', () => {
-  getStorage().removeItem('jt_token');
-  getStorage().removeItem('jt_user');
+  localStorage.removeItem('jt_token');
+  localStorage.removeItem('jt_user');
   currentUser.value = null;
   globalThis.dispatchEvent(new CustomEvent('jt:auth-change'));
 });
@@ -35,17 +31,17 @@ export function useAuth() {
   function setUser(userData, token) {
     if (userData) {
       if (token) {
-        getStorage().setItem('jt_token', token);
+        localStorage.setItem('jt_token', token);
       }
-      getStorage().setItem('jt_user', JSON.stringify(userData));
+      localStorage.setItem('jt_user', JSON.stringify(userData));
       currentUser.value = userData;
       globalThis.dispatchEvent(new CustomEvent('jt:auth-change'));
     }
   }
 
   function logoutUser() {
-    getStorage().removeItem('jt_token');
-    getStorage().removeItem('jt_user');
+    localStorage.removeItem('jt_token');
+    localStorage.removeItem('jt_user');
     currentUser.value = null;
     globalThis.dispatchEvent(new CustomEvent('jt:auth-change'));
   }
