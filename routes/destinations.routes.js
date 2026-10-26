@@ -2,12 +2,18 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { verifyToken, requireRole } = require('../middleware/auth');
-const { slugify, getPagination } = require('../utils/helpers');
+const {
+    generateUniqueSlug,
+    getPagination,
+    applyCommonCatalogFilters,
+    fetchEntityReviews,
+    createDeleteHandler
+} = require('../utils/helpers');
 
 // GET /api/destinations
 router.get('/', (req, res) => {
     try {
-        const { category, regency, search, community_only, sort, limit = 20, page = 1 } = req.query;
+        const { search, sort } = req.query;
         let query = `
             SELECT d.*, c.name as category_name, c.slug as category_slug, r.name as regency_name, r.short_name as regency_short
             FROM destinations d
@@ -15,26 +21,9 @@ router.get('/', (req, res) => {
             JOIN regencies r ON d.regency_id = r.id
             WHERE 1=1
         `;
-        const params = [];
 
-        if (category) {
-            if (Number.isNaN(Number(category))) {
-                query += ` AND c.slug = ?`;
-                params.push(category);
-            } else {
-                query += ` AND d.category_id = ?`;
-                params.push(Number(category));
-            }
-        }
-
-        if (regency) {
-            query += ` AND d.regency_id = ?`;
-            params.push(Number(regency));
-        }
-
-        if (community_only === '1' || community_only === 'true') {
-            query += ` AND d.is_community_managed = 1`;
-        }
+        const { conditions, params } = applyCommonCatalogFilters(req.query, 'd');
+        query += conditions;
 
         if (search) {
             query += ` AND (d.name LIKE ? OR d.description LIKE ? OR d.address LIKE ?)`;
@@ -104,38 +93,24 @@ router.get('/featured', (req, res) => {
 router.get('/:idOrSlug', (req, res) => {
     try {
         const { idOrSlug } = req.params;
-        let dest;
-        if (!Number.isNaN(Number(idOrSlug))) {
-            dest = db.prepare(`
-                SELECT d.*, c.name as category_name, c.slug as category_slug, r.name as regency_name, r.short_name as regency_short
-                FROM destinations d
-                JOIN categories c ON d.category_id = c.id
-                JOIN regencies r ON d.regency_id = r.id
-                WHERE d.id = ?
-            `).get(Number(idOrSlug));
-        } else {
-            dest = db.prepare(`
-                SELECT d.*, c.name as category_name, c.slug as category_slug, r.name as regency_name, r.short_name as regency_short
-                FROM destinations d
-                JOIN categories c ON d.category_id = c.id
-                JOIN regencies r ON d.regency_id = r.id
-                WHERE d.slug = ?
-            `).get(idOrSlug);
-        }
+        const isNumeric = !Number.isNaN(Number(idOrSlug));
+        const condition = isNumeric ? 'd.id = ?' : 'd.slug = ?';
+        const paramVal = isNumeric ? Number(idOrSlug) : idOrSlug;
+
+        const dest = db.prepare(`
+            SELECT d.*, c.name as category_name, c.slug as category_slug, r.name as regency_name, r.short_name as regency_short
+            FROM destinations d
+            JOIN categories c ON d.category_id = c.id
+            JOIN regencies r ON d.regency_id = r.id
+            WHERE ${condition}
+        `).get(paramVal);
 
         if (!dest) {
             return res.status(404).json({ success: false, message: 'Destinasi wisata tidak ditemukan.' });
         }
 
-        // Fetch authentic reviews
-        const reviews = db.prepare(`
-            SELECT id, reviewer_name, rating, review_text, created_at
-            FROM reviews
-            WHERE target_type = 'destination' AND target_id = ?
-            ORDER BY id DESC
-        `).all(dest.id);
+        const reviews = fetchEntityReviews(db, 'destination', dest.id);
 
-        // Fetch related destinations in same regency or category
         const related = db.prepare(`
             SELECT d.id, d.name, d.slug, d.image_url, d.price_display, d.rating_avg, c.name as category_name, r.name as regency_name
             FROM destinations d
@@ -173,11 +148,7 @@ router.post('/', verifyToken, requireRole(['admin', 'partner']), (req, res) => {
             return res.status(400).json({ success: false, message: 'Nama, kategori, dan kabupaten wajib diisi.' });
         }
 
-        let slug = slugify(name);
-        const existingSlug = db.prepare('SELECT id FROM destinations WHERE slug = ?').get(slug);
-        if (existingSlug) {
-            slug = `${slug}-${Date.now().toString().slice(-4)}`;
-        }
+        const slug = generateUniqueSlug(db, 'destinations', name);
 
         const stmt = db.prepare(`
             INSERT INTO destinations (
@@ -272,23 +243,6 @@ router.put('/:id', verifyToken, requireRole(['admin', 'partner']), (req, res) =>
 });
 
 // DELETE /api/destinations/:id (Admin only)
-router.delete('/:id', verifyToken, requireRole('admin'), (req, res) => {
-    try {
-        const { id } = req.params;
-        const existing = db.prepare('SELECT id FROM destinations WHERE id = ?').get(id);
-        if (!existing) {
-            return res.status(404).json({ success: false, message: 'Destinasi tidak ditemukan.' });
-        }
-
-        // Delete associated reviews first
-        db.prepare(`DELETE FROM reviews WHERE target_type = 'destination' AND target_id = ?`).run(id);
-        db.prepare('DELETE FROM destinations WHERE id = ?').run(id);
-
-        return res.json({ success: true, message: 'Destinasi wisata berhasil dihapus.' });
-    } catch (err) {
-        console.error('Error deleting destination:', err);
-        return res.status(500).json({ success: false, message: 'Gagal menghapus destinasi.' });
-    }
-});
+router.delete('/:id', verifyToken, requireRole('admin'), createDeleteHandler(db, 'destinations', 'Destinasi wisata', 'destination'));
 
 module.exports = router;

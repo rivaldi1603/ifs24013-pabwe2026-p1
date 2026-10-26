@@ -2,12 +2,18 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { verifyToken, requireRole } = require('../middleware/auth');
-const { slugify, getPagination } = require('../utils/helpers');
+const {
+    generateUniqueSlug,
+    getPagination,
+    applyCommonCatalogFilters,
+    fetchEntityReviews,
+    createDeleteHandler
+} = require('../utils/helpers');
 
 // GET /api/services
 router.get('/', (req, res) => {
     try {
-        const { service_type, category, regency, search, community_only, limit = 20, page = 1 } = req.query;
+        const { service_type, search } = req.query;
 
         let query = `
             SELECT s.*, c.name as category_name, c.slug as category_slug, r.name as regency_name, r.short_name as regency_short
@@ -16,30 +22,13 @@ router.get('/', (req, res) => {
             JOIN regencies r ON s.regency_id = r.id
             WHERE 1=1
         `;
-        const params = [];
+
+        const { conditions, params } = applyCommonCatalogFilters(req.query, 's');
+        query += conditions;
 
         if (service_type) {
             query += ` AND s.service_type = ?`;
             params.push(service_type);
-        }
-
-        if (category) {
-            if (Number.isNaN(Number(category))) {
-                query += ` AND c.slug = ?`;
-                params.push(category);
-            } else {
-                query += ` AND s.category_id = ?`;
-                params.push(Number(category));
-            }
-        }
-
-        if (regency) {
-            query += ` AND s.regency_id = ?`;
-            params.push(Number(regency));
-        }
-
-        if (community_only === '1' || community_only === 'true') {
-            query += ` AND s.is_community_managed = 1`;
         }
 
         if (search) {
@@ -78,47 +67,33 @@ router.get('/', (req, res) => {
 router.get('/:idOrSlug', (req, res) => {
     try {
         const { idOrSlug } = req.params;
-        const isNum = /^\d+$/.test(idOrSlug);
-        let srv;
-        if (isNum) {
+        const isNumeric = !Number.isNaN(Number(idOrSlug));
+        const condition = isNumeric ? 's.id = ?' : 's.slug = ?';
+        const paramVal = isNumeric ? Number(idOrSlug) : idOrSlug;
+
+        let srv = db.prepare(`
+            SELECT s.*, c.name as category_name, c.slug as category_slug, r.name as regency_name, r.short_name as regency_short
+            FROM services s
+            JOIN categories c ON s.category_id = c.id
+            JOIN regencies r ON s.regency_id = r.id
+            WHERE ${condition}
+        `).get(paramVal);
+
+        if (!srv && !isNumeric) {
             srv = db.prepare(`
                 SELECT s.*, c.name as category_name, c.slug as category_slug, r.name as regency_name, r.short_name as regency_short
                 FROM services s
                 JOIN categories c ON s.category_id = c.id
                 JOIN regencies r ON s.regency_id = r.id
                 WHERE s.id = ?
-            `).get(Number(idOrSlug));
-        } else {
-            srv = db.prepare(`
-                SELECT s.*, c.name as category_name, c.slug as category_slug, r.name as regency_name, r.short_name as regency_short
-                FROM services s
-                JOIN categories c ON s.category_id = c.id
-                JOIN regencies r ON s.regency_id = r.id
-                WHERE s.slug = ?
-            `).get(idOrSlug);
-        }
-
-        // Fallback: if not found, check both slug and id
-        if (!srv) {
-            srv = db.prepare(`
-                SELECT s.*, c.name as category_name, c.slug as category_slug, r.name as regency_name, r.short_name as regency_short
-                FROM services s
-                JOIN categories c ON s.category_id = c.id
-                JOIN regencies r ON s.regency_id = r.id
-                WHERE s.slug = ? OR s.id = ?
-            `).get(idOrSlug, Number(idOrSlug) || 0);
+            `).get(Number(idOrSlug) || 0);
         }
 
         if (!srv) {
             return res.status(404).json({ success: false, message: 'Layanan / jasa lokal tidak ditemukan.' });
         }
 
-        const reviews = db.prepare(`
-            SELECT id, reviewer_name, rating, review_text, created_at
-            FROM reviews
-            WHERE target_type = 'service' AND target_id = ?
-            ORDER BY id DESC
-        `).all(srv.id);
+        const reviews = fetchEntityReviews(db, 'service', srv.id);
 
         const related = db.prepare(`
             SELECT s.id, s.name, s.slug, s.provider_name, s.price_display, s.rating_avg, s.service_type, r.name as regency_name
@@ -156,11 +131,7 @@ router.post('/', verifyToken, requireRole(['admin', 'partner']), (req, res) => {
             return res.status(400).json({ success: false, message: 'Nama, kategori, kabupaten, dan penyedia jasa wajib diisi.' });
         }
 
-        let slug = slugify(name);
-        const existingSlug = db.prepare('SELECT id FROM services WHERE slug = ?').get(slug);
-        if (existingSlug) {
-            slug = `${slug}-${Date.now().toString().slice(-4)}`;
-        }
+        const slug = generateUniqueSlug(db, 'services', name);
 
         const stmt = db.prepare(`
             INSERT INTO services (
@@ -257,22 +228,6 @@ router.put('/:id', verifyToken, requireRole(['admin', 'partner']), (req, res) =>
 });
 
 // DELETE /api/services/:id (Admin only)
-router.delete('/:id', verifyToken, requireRole('admin'), (req, res) => {
-    try {
-        const { id } = req.params;
-        const existing = db.prepare('SELECT id FROM services WHERE id = ?').get(id);
-        if (!existing) {
-            return res.status(404).json({ success: false, message: 'Layanan lokal tidak ditemukan.' });
-        }
-
-        db.prepare(`DELETE FROM reviews WHERE target_type = 'service' AND target_id = ?`).run(id);
-        db.prepare('DELETE FROM services WHERE id = ?').run(id);
-
-        return res.json({ success: true, message: 'Layanan lokal berhasil dihapus.' });
-    } catch (err) {
-        console.error('Error deleting service:', err);
-        return res.status(500).json({ success: false, message: 'Gagal menghapus layanan lokal.' });
-    }
-});
+router.delete('/:id', verifyToken, requireRole('admin'), createDeleteHandler(db, 'services', 'Layanan lokal', 'service'));
 
 module.exports = router;
