@@ -69,7 +69,7 @@ router.post('/', verifyToken, (req, res) => {
         }
 
         const parsedRating = Number.parseFloat(rating);
-        if (Number.isNaN(parsedRating) || parsedRating < 1.0 || parsedRating > 5.0) {
+        if (Number.isNaN(parsedRating) || parsedRating < 1 || parsedRating > 5) {
             return res.status(400).json({ success: false, message: 'Rating harus berupa angka antara 1.0 sampai 5.0.' });
         }
 

@@ -8,6 +8,7 @@ router.get('/categories', (req, res) => {
         const categories = db.prepare('SELECT * FROM categories ORDER BY id ASC').all();
         return res.json({ success: true, data: categories });
     } catch (err) {
+        console.error('Error fetching categories:', err);
         return res.status(500).json({ success: false, message: 'Gagal memuat kategori.' });
     }
 });
@@ -24,6 +25,7 @@ router.get('/regencies', (req, res) => {
         `).all();
         return res.json({ success: true, data: regencies });
     } catch (err) {
+        console.error('Error fetching regencies:', err);
         return res.status(500).json({ success: false, message: 'Gagal memuat data kabupaten.' });
     }
 });

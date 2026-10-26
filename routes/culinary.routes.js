@@ -33,11 +33,16 @@ router.get('/', (req, res) => {
 router.post('/items', verifyToken, requireRole('admin'), (req, res) => {
     try {
         const { name, slug, description, halal_status, origin_region, is_traditional, image_url } = req.body;
-        if (!name || !name.trim()) {
+        if (!name?.trim()) {
             return res.status(400).json({ success: false, message: 'Nama makanan/kuliner wajib diisi.' });
         }
 
-        const culinarySlug = slug && slug.trim() ? slugify(slug.trim()) : `${slugify(name)}-${Date.now().toString().slice(-4)}`;
+        const culinarySlug = slug?.trim() ? slugify(slug.trim()) : `${slugify(name)}-${Date.now().toString().slice(-4)}`;
+
+        let traditionalFlag = 1;
+        if (is_traditional !== undefined) {
+            traditionalFlag = is_traditional ? 1 : 0;
+        }
 
         const stmt = db.prepare(`
             INSERT INTO culinary_items (name, slug, description, halal_status, origin_region, is_traditional, image_url)
@@ -50,7 +55,7 @@ router.post('/items', verifyToken, requireRole('admin'), (req, res) => {
             description || '',
             halal_status || 'Halal',
             origin_region || 'Kawasan Danau Toba',
-            is_traditional !== undefined ? (is_traditional ? 1 : 0) : 1,
+            traditionalFlag,
             image_url || ''
         );
 
@@ -76,17 +81,22 @@ router.put('/items/:id', verifyToken, requireRole('admin'), (req, res) => {
             return res.status(404).json({ success: false, message: 'Menu kuliner tidak ditemukan.' });
         }
 
+        let updatedTraditional = existing.is_traditional;
+        if (is_traditional !== undefined) {
+            updatedTraditional = is_traditional ? 1 : 0;
+        }
+
         db.prepare(`
             UPDATE culinary_items
             SET name = ?, description = ?, halal_status = ?, origin_region = ?, is_traditional = ?, image_url = ?
             WHERE id = ?
         `).run(
-            name !== undefined ? name.trim() : existing.name,
-            description !== undefined ? description : existing.description,
-            halal_status !== undefined ? halal_status : existing.halal_status,
-            origin_region !== undefined ? origin_region : existing.origin_region,
-            is_traditional !== undefined ? (is_traditional ? 1 : 0) : existing.is_traditional,
-            image_url !== undefined ? image_url : existing.image_url,
+            name === undefined ? existing.name : name.trim(),
+            description === undefined ? existing.description : description,
+            halal_status === undefined ? existing.halal_status : halal_status,
+            origin_region === undefined ? existing.origin_region : origin_region,
+            updatedTraditional,
+            image_url === undefined ? existing.image_url : image_url,
             id
         );
 

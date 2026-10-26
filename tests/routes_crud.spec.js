@@ -25,9 +25,30 @@ describe('CRUD Operations & Route Parameters Test Suite', () => {
       expect(res.body.success).toBe(true);
     });
 
+    it('GET /api/destinations with numeric category, regency, and sort variations', async () => {
+      const res1 = await request(app).get('/api/destinations?category=1&regency=1&sort=price_low');
+      expect(res1.status).toBe(200);
+
+      const res2 = await request(app).get('/api/destinations?sort=price_high');
+      expect(res2.status).toBe(200);
+
+      const res3 = await request(app).get('/api/destinations?sort=reviews');
+      expect(res3.status).toBe(200);
+    });
+
     it('GET /api/destinations/:idOrSlug with numeric ID', async () => {
-      const res = await request(app).get('/api/destinations/1');
+      const res = await request(app).get('/api/destinations/101');
       expect([200, 404]).toContain(res.status);
+    });
+
+    it('GET /api/destinations/:idOrSlug with string slug and 404 handler', async () => {
+      const resSlug = await request(app).get('/api/destinations/aek-bath-sitio-tio');
+      expect(resSlug.status).toBe(200);
+      expect(resSlug.body.success).toBe(true);
+
+      const res404 = await request(app).get('/api/destinations/non-existent-slug-xyz-999');
+      expect(res404.status).toBe(404);
+      expect(res404.body.success).toBe(false);
     });
 
     it('GET /api/destinations/featured returns top destinations', async () => {
@@ -111,9 +132,20 @@ describe('CRUD Operations & Route Parameters Test Suite', () => {
     let createdServiceId = null;
 
     it('GET /api/services with search and service_type filter', async () => {
-      const res = await request(app).get('/api/services?service_type=homestay&search=toba');
+      const res = await request(app).get('/api/services?service_type=homestay&search=toba&category=1&regency=1&community_only=1');
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
+    });
+
+    it('GET /api/services/:idOrSlug with numeric ID, slug, and 404', async () => {
+      const resNum = await request(app).get('/api/services/42');
+      expect([200, 404]).toContain(resNum.status);
+
+      const resSlug = await request(app).get('/api/services/atv-di-kebun-teh-sidamanik');
+      expect([200, 404]).toContain(resSlug.status);
+
+      const res404 = await request(app).get('/api/services/non-existent-service-slug-999');
+      expect(res404.status).toBe(404);
     });
 
     it('POST /api/services creates a new service', async () => {
@@ -129,7 +161,7 @@ describe('CRUD Operations & Route Parameters Test Suite', () => {
           price_min: 150000,
           price_max: 250000,
           price_display: 'Rp 150.000 / malam',
-          is_community_managed: false
+          is_community_managed: true
         });
 
       expect(res.status).toBe(201);
@@ -159,13 +191,18 @@ describe('CRUD Operations & Route Parameters Test Suite', () => {
       expect(res.body.success).toBe(true);
     });
 
-    it('DELETE /api/services/:id removes service', async () => {
+    it('DELETE /api/services/:id removes service and handles 404', async () => {
       const res = await request(app)
         .delete(`/api/services/${createdServiceId}`)
         .set('Authorization', `Bearer ${adminToken}`);
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
+
+      const res404 = await request(app)
+        .delete('/api/services/99999999')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(res404.status).toBe(404);
     });
   });
 
@@ -294,6 +331,16 @@ describe('CRUD Operations & Route Parameters Test Suite', () => {
       createdArticleId = res.body.data.id;
     });
 
+    it('POST /api/articles fails when title is missing', async () => {
+      const res = await request(app)
+        .post('/api/articles')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ title: '   ' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+
     it('PUT /api/articles/:id updates article', async () => {
       const res = await request(app)
         .put(`/api/articles/${createdArticleId}`)
@@ -304,13 +351,32 @@ describe('CRUD Operations & Route Parameters Test Suite', () => {
       expect(res.body.success).toBe(true);
     });
 
-    it('DELETE /api/articles/:id removes article', async () => {
+    it('PUT /api/articles/:id fails when title is missing or not found', async () => {
+      const resBad = await request(app)
+        .put(`/api/articles/${createdArticleId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ title: '' });
+      expect(resBad.status).toBe(400);
+
+      const res404 = await request(app)
+        .put('/api/articles/99999999')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ title: 'Judul Baru' });
+      expect(res404.status).toBe(404);
+    });
+
+    it('DELETE /api/articles/:id removes article and handles 404', async () => {
       const res = await request(app)
         .delete(`/api/articles/${createdArticleId}`)
         .set('Authorization', `Bearer ${adminToken}`);
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
+
+      const res404 = await request(app)
+        .delete('/api/articles/99999999')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(res404.status).toBe(404);
     });
   });
 

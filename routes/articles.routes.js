@@ -16,6 +16,7 @@ router.get('/', (req, res) => {
         const data = db.prepare(query).all();
         return res.json({ success: true, total: data.length, data });
     } catch (err) {
+        console.error('Error fetching articles:', err);
         return res.status(500).json({ success: false, message: 'Gagal memuat artikel.' });
     }
 });
@@ -24,11 +25,11 @@ router.get('/', (req, res) => {
 router.post('/', verifyToken, requireRole('admin'), (req, res) => {
     try {
         const { title, slug, regency_id, summary, source_url, published_at } = req.body;
-        if (!title || !title.trim()) {
+        if (!title?.trim()) {
             return res.status(400).json({ success: false, message: 'Judul artikel wajib diisi.' });
         }
 
-        const articleSlug = slug && slug.trim() ? slugify(slug.trim()) : `${slugify(title)}-${Date.now().toString().slice(-4)}`;
+        const articleSlug = slug?.trim() ? slugify(slug.trim()) : `${slugify(title)}-${Date.now().toString().slice(-4)}`;
         const regencyId = regency_id ? Number(regency_id) : null;
         const pubDate = published_at || new Date().toISOString().split('T')[0];
 
@@ -56,7 +57,7 @@ router.put('/:id', verifyToken, requireRole('admin'), (req, res) => {
         const { id } = req.params;
         const { title, regency_id, summary, source_url, published_at } = req.body;
 
-        if (!title || !title.trim()) {
+        if (!title?.trim()) {
             return res.status(400).json({ success: false, message: 'Judul artikel wajib diisi.' });
         }
 
@@ -74,8 +75,8 @@ router.put('/:id', verifyToken, requireRole('admin'), (req, res) => {
         `).run(
             title.trim(),
             regencyId,
-            summary !== undefined ? summary : existing.summary,
-            source_url !== undefined ? source_url : existing.source_url,
+            summary === undefined ? existing.summary : summary,
+            source_url === undefined ? existing.source_url : source_url,
             published_at || existing.published_at,
             id
         );

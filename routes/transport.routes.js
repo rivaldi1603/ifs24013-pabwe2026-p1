@@ -89,15 +89,15 @@ router.put('/:id', verifyToken, requireRole('admin'), (req, res) => {
             SET name = ?, transport_type = ?, route_direction = ?, vehicle_type = ?, departure_hours = ?, price_display = ?, description = ?, operator = ?, contact = ?
             WHERE id = ?
         `).run(
-            name !== undefined ? name.trim() : existing.name,
+            name === undefined ? existing.name : name.trim(),
             type,
-            route_direction !== undefined ? route_direction.trim() : existing.route_direction,
-            vehicle_type !== undefined ? vehicle_type : existing.vehicle_type,
-            departure_hours !== undefined ? departure_hours : existing.departure_hours,
-            price_display !== undefined ? price_display : existing.price_display,
-            description !== undefined ? description : existing.description,
-            operator !== undefined ? operator : existing.operator,
-            contact !== undefined ? contact : existing.contact,
+            route_direction === undefined ? existing.route_direction : route_direction.trim(),
+            vehicle_type === undefined ? existing.vehicle_type : vehicle_type,
+            departure_hours === undefined ? existing.departure_hours : departure_hours,
+            price_display === undefined ? existing.price_display : price_display,
+            description === undefined ? existing.description : description,
+            operator === undefined ? existing.operator : operator,
+            contact === undefined ? existing.contact : contact,
             id
         );
 

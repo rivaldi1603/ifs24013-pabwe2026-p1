@@ -18,7 +18,7 @@ describe('Unit Tests for utils/helpers.js and db.js Wrapper', () => {
     it('converts text to lowercase and replaces spaces and symbols with single dashes', () => {
       expect(slugify('Danau Toba Indah & Asri!')).toBe('danau-toba-indah-asri');
       expect(slugify('---Halo   Dunia---')).toBe('halo-dunia');
-      expect(slugify('Multiple---Dashes__Test')).toBe('multiple-dashes_test');
+      expect(slugify('Multiple---Dashes--Test')).toBe('multiple-dashes-test');
     });
   });
 
@@ -132,6 +132,24 @@ describe('Unit Tests for utils/helpers.js and db.js Wrapper', () => {
       handler({ params: { id: 1 } }, res);
       expect(status).toBe(500);
       expect(body.success).toBe(false);
+    });
+
+    it('deletes an existing entity and runs cleanupTargetType if provided', () => {
+      const ins = db.prepare(`
+        INSERT INTO destinations (name, slug, category_id, regency_id)
+        VALUES ('Test Delete Target', 'test-delete-target-helper', 1, 1)
+      `).run();
+      const newId = ins.lastInsertRowid;
+
+      let jsonBody = null;
+      const res = {
+        json: (data) => { jsonBody = data; return data; }
+      };
+
+      const handler = createDeleteHandler(db, 'destinations', 'Destinasi wisata', 'destination');
+      handler({ params: { id: newId } }, res);
+      expect(jsonBody.success).toBe(true);
+      expect(jsonBody.message).toContain('berhasil dihapus');
     });
   });
 

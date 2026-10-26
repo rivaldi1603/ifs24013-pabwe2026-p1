@@ -18,7 +18,11 @@ function verifyToken(req, res, next) {
         req.user = decoded;
         next();
     } catch (err) {
-        return res.status(403).json({ success: false, message: 'Token tidak valid atau telah kedaluwarsa.' });
+        return res.status(403).json({
+            success: false,
+            message: 'Token tidak valid atau telah kedaluwarsa.',
+            error: err.message
+        });
     }
 }
 
@@ -28,8 +32,9 @@ function optionalAuth(req, res, next) {
         const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
         try {
             req.user = jwt.verify(token, JWT_SECRET);
-        } catch (e) {
-            // ignore invalid token in optionalAuth
+        } catch (err) {
+            req.user = undefined;
+            console.debug('Optional auth token ignored:', err.message);
         }
     }
     next();

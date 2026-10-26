@@ -221,17 +221,22 @@ router.put('/:id', verifyToken, requireRole(['admin', 'partner']), (req, res) =>
             WHERE id = ?
         `);
 
+        let communityVal = null;
+        if (is_community_managed !== undefined) {
+            communityVal = is_community_managed ? 1 : 0;
+        }
+
         stmt.run(
             name ? name.trim() : null,
             category_id ? Number(category_id) : null,
             regency_id ? Number(regency_id) : null,
             description, address,
-            latitude !== undefined ? Number(latitude) : null,
-            longitude !== undefined ? Number(longitude) : null,
-            price_min !== undefined ? Number(price_min) : null,
-            price_max !== undefined ? Number(price_max) : null,
+            latitude === undefined ? null : Number(latitude),
+            longitude === undefined ? null : Number(longitude),
+            price_min === undefined ? null : Number(price_min),
+            price_max === undefined ? null : Number(price_max),
             price_display, operational_hours, contact_phone, contact_wa,
-            is_community_managed !== undefined ? (is_community_managed ? 1 : 0) : null,
+            communityVal,
             status, image_url, id
         );
 

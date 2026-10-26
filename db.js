@@ -1,16 +1,17 @@
-const path = require('path');
-const fs = require('fs');
+const path = require('node:path');
+const fs = require('node:fs');
 
 let dbInstance = null;
 let dbReady = null;
 
 const dbPath = path.join(__dirname, 'database.sqlite');
 
+function normalizeParams(args) {
+  const raw = args.length === 1 && Array.isArray(args[0]) ? args[0] : args;
+  return raw.map(p => (p === undefined ? null : p));
+}
+
 function createSqlJsWrapper(wasmDb) {
-  function normalizeParams(args) {
-    const raw = args.length === 1 && Array.isArray(args[0]) ? args[0] : args;
-    return raw.map(p => (p === undefined ? null : p));
-  }
   return {
     prepare: (sql) => {
       return {

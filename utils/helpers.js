@@ -6,8 +6,8 @@
 function slugify(text) {
     return text.toString().toLowerCase()
         .replaceAll(/\s+/g, '-')
-        .replaceAll(/[^\w\-]+/g, '')
-        .replaceAll(/\-\-+/g, '-')
+        .replaceAll(/[^\w-]+/g, '')
+        .replaceAll(/--+/g, '-')
         .replace(/^-+/, '')
         .replace(/-+$/, '');
 }
