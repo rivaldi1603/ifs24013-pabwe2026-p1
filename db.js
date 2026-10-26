@@ -7,11 +7,15 @@ let dbReady = null;
 const dbPath = path.join(__dirname, 'database.sqlite');
 
 function createSqlJsWrapper(wasmDb) {
+  function normalizeParams(args) {
+    const raw = args.length === 1 && Array.isArray(args[0]) ? args[0] : args;
+    return raw.map(p => (p === undefined ? null : p));
+  }
   return {
     prepare: (sql) => {
       return {
         all: (...args) => {
-          const params = args.length === 1 && Array.isArray(args[0]) ? args[0] : args;
+          const params = normalizeParams(args);
           const stmt = wasmDb.prepare(sql);
           stmt.bind(params);
           const rows = [];
@@ -22,7 +26,7 @@ function createSqlJsWrapper(wasmDb) {
           return rows;
         },
         get: (...args) => {
-          const params = args.length === 1 && Array.isArray(args[0]) ? args[0] : args;
+          const params = normalizeParams(args);
           const stmt = wasmDb.prepare(sql);
           stmt.bind(params);
           let row = undefined;
@@ -33,7 +37,7 @@ function createSqlJsWrapper(wasmDb) {
           return row;
         },
         run: (...args) => {
-          const params = args.length === 1 && Array.isArray(args[0]) ? args[0] : args;
+          const params = normalizeParams(args);
           wasmDb.run(sql, params);
           let lastId = 0;
           try {

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { verifyToken, requireRole } = require('../middleware/auth');
+const { createDeleteHandler } = require('../utils/helpers');
 
 // GET /api/transport
 router.get('/', (req, res) => {
@@ -108,19 +109,6 @@ router.put('/:id', verifyToken, requireRole('admin'), (req, res) => {
 });
 
 // DELETE /api/transport/:id (Admin only)
-router.delete('/:id', verifyToken, requireRole('admin'), (req, res) => {
-    try {
-        const { id } = req.params;
-        const existing = db.prepare('SELECT * FROM transport_routes WHERE id = ?').get(id);
-        if (!existing) {
-            return res.status(404).json({ success: false, message: 'Rute transportasi tidak ditemukan.' });
-        }
-
-        db.prepare('DELETE FROM transport_routes WHERE id = ?').run(id);
-        return res.json({ success: true, message: 'Rute transportasi berhasil dihapus.' });
-    } catch (err) {
-        return res.status(500).json({ success: false, message: 'Gagal menghapus rute transportasi.' });
-    }
-});
+router.delete('/:id', verifyToken, requireRole('admin'), createDeleteHandler(db, 'transport_routes', 'Rute transportasi'));
 
 module.exports = router;

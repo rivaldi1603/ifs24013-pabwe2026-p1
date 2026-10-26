@@ -2,15 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { verifyToken, requireRole } = require('../middleware/auth');
-
-function slugify(text) {
-    return text.toString().toLowerCase()
-        .replace(/\s+/g, '-')
-        .replace(/[^\w\-]+/g, '')
-        .replace(/\-\-+/g, '-')
-        .replace(/^-+/, '')
-        .replace(/-+$/, '');
-}
+const { slugify, createDeleteHandler } = require('../utils/helpers');
 
 // GET /api/articles
 router.get('/', (req, res) => {
@@ -96,19 +88,6 @@ router.put('/:id', verifyToken, requireRole('admin'), (req, res) => {
 });
 
 // DELETE /api/articles/:id (Admin only)
-router.delete('/:id', verifyToken, requireRole('admin'), (req, res) => {
-    try {
-        const { id } = req.params;
-        const existing = db.prepare('SELECT * FROM articles WHERE id = ?').get(id);
-        if (!existing) {
-            return res.status(404).json({ success: false, message: 'Artikel tidak ditemukan.' });
-        }
-
-        db.prepare('DELETE FROM articles WHERE id = ?').run(id);
-        return res.json({ success: true, message: 'Artikel berhasil dihapus.' });
-    } catch (err) {
-        return res.status(500).json({ success: false, message: 'Gagal menghapus artikel.' });
-    }
-});
+router.delete('/:id', verifyToken, requireRole('admin'), createDeleteHandler(db, 'articles', 'Artikel'));
 
 module.exports = router;

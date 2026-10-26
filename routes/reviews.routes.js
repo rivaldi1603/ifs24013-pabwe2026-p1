@@ -68,8 +68,8 @@ router.post('/', verifyToken, (req, res) => {
             return res.status(400).json({ success: false, message: 'target_type harus bernilai destination atau service.' });
         }
 
-        const parsedRating = parseFloat(rating);
-        if (isNaN(parsedRating) || parsedRating < 1.0 || parsedRating > 5.0) {
+        const parsedRating = Number.parseFloat(rating);
+        if (Number.isNaN(parsedRating) || parsedRating < 1.0 || parsedRating > 5.0) {
             return res.status(400).json({ success: false, message: 'Rating harus berupa angka antara 1.0 sampai 5.0.' });
         }
 

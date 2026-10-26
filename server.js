@@ -18,12 +18,10 @@ try {
     const db = require('./db');
 
     app.use(async (req, res, next) => {
-        if (db.ready) {
-            try {
-                await db.ready;
-            } catch (e) {
-                console.error('Error awaiting db.ready:', e);
-            }
+        try {
+            await db.ready;
+        } catch (e) {
+            console.error('Error awaiting db.ready:', e);
         }
         next();
     });

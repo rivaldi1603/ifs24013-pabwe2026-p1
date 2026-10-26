@@ -2,15 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { verifyToken, requireRole } = require('../middleware/auth');
-
-function slugify(text) {
-    return text.toString().toLowerCase()
-        .replace(/\s+/g, '-')
-        .replace(/[^\w\-]+/g, '')
-        .replace(/\-\-+/g, '-')
-        .replace(/^-+/, '')
-        .replace(/-+$/, '');
-}
+const { slugify, getPagination, createDeleteHandler } = require('../utils/helpers');
 
 // GET /api/culinary (Traditional Batak culinary items)
 router.get('/', (req, res) => {
@@ -106,20 +98,7 @@ router.put('/items/:id', verifyToken, requireRole('admin'), (req, res) => {
 });
 
 // DELETE /api/culinary/items/:id (Admin only)
-router.delete('/items/:id', verifyToken, requireRole('admin'), (req, res) => {
-    try {
-        const { id } = req.params;
-        const existing = db.prepare('SELECT * FROM culinary_items WHERE id = ?').get(id);
-        if (!existing) {
-            return res.status(404).json({ success: false, message: 'Menu kuliner tidak ditemukan.' });
-        }
-
-        db.prepare('DELETE FROM culinary_items WHERE id = ?').run(id);
-        return res.json({ success: true, message: 'Menu kuliner berhasil dihapus.' });
-    } catch (err) {
-        return res.status(500).json({ success: false, message: 'Gagal menghapus menu kuliner.' });
-    }
-});
+router.delete('/items/:id', verifyToken, requireRole('admin'), createDeleteHandler(db, 'culinary_items', 'Menu kuliner'));
 
 // GET /api/culinary/restaurants (Eateries & restaurants around Lake Toba)
 router.get('/restaurants', (req, res) => {
@@ -153,9 +132,7 @@ router.get('/restaurants', (req, res) => {
         const countQuery = query.replace('SELECT res.*, r.name as regency_name, r.short_name as regency_short', 'SELECT COUNT(*) as total');
         const total = db.prepare(countQuery).get(...params).total;
 
-        const parsedLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
-        const parsedPage = Math.max(Number(page) || 1, 1);
-        const offset = (parsedPage - 1) * parsedLimit;
+        const { page: parsedPage, limit: parsedLimit, offset } = getPagination(req.query, 20);
 
         query += ' LIMIT ? OFFSET ?';
         params.push(parsedLimit, offset);

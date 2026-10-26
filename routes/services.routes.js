@@ -2,15 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { verifyToken, requireRole } = require('../middleware/auth');
-
-function slugify(text) {
-    return text.toString().toLowerCase()
-        .replace(/\s+/g, '-')
-        .replace(/[^\w\-]+/g, '')
-        .replace(/\-\-+/g, '-')
-        .replace(/^-+/, '')
-        .replace(/-+$/, '');
-}
+const { slugify, getPagination } = require('../utils/helpers');
 
 // GET /api/services
 router.get('/', (req, res) => {
@@ -32,7 +24,7 @@ router.get('/', (req, res) => {
         }
 
         if (category) {
-            if (isNaN(category)) {
+            if (Number.isNaN(Number(category))) {
                 query += ` AND c.slug = ?`;
                 params.push(category);
             } else {
@@ -61,9 +53,7 @@ router.get('/', (req, res) => {
         const countQuery = query.replace('SELECT s.*, c.name as category_name, c.slug as category_slug, r.name as regency_name, r.short_name as regency_short', 'SELECT COUNT(*) as total');
         const total = db.prepare(countQuery).get(...params).total;
 
-        const parsedLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
-        const parsedPage = Math.max(Number(page) || 1, 1);
-        const offset = (parsedPage - 1) * parsedLimit;
+        const { page: parsedPage, limit: parsedLimit, offset } = getPagination(req.query, 20);
 
         query += ` LIMIT ? OFFSET ?`;
         params.push(parsedLimit, offset);
@@ -190,7 +180,7 @@ router.post('/', verifyToken, requireRole(['admin', 'partner']), (req, res) => {
             longitude ? Number(longitude) : null,
             contact_phone || null,
             contact_wa || null,
-            is_community_managed ? 1 : 1
+            is_community_managed ? 1 : 0
         );
 
         return res.status(201).json({
