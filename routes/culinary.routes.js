@@ -19,6 +19,17 @@ router.get('/', (req, res) => {
 });
 
 
+// Helper to resolve traditional flag without negated condition or nested ternaries
+function resolveTraditionalFlag(inputValue, fallbackValue = 1) {
+    if (inputValue === undefined) {
+        return fallbackValue;
+    }
+    if (inputValue) {
+        return 1;
+    }
+    return 0;
+}
+
 // POST /api/culinary/items (Admin only: add culinary item)
 router.post('/items', verifyToken, requireRole('admin'), (req, res) => {
     try {
@@ -28,11 +39,7 @@ router.post('/items', verifyToken, requireRole('admin'), (req, res) => {
         }
 
         const culinarySlug = slug?.trim() ? slugify(slug.trim()) : generateUniqueSlug(db, 'culinary_items', name);
-
-        let traditionalFlag = 1;
-        if (is_traditional !== undefined) {
-            traditionalFlag = is_traditional ? 1 : 0;
-        }
+        const traditionalFlag = resolveTraditionalFlag(is_traditional, 1);
 
         const insertRecord = [
             name.trim(),
@@ -71,9 +78,7 @@ router.put('/items/:id', verifyToken, requireRole('admin'), (req, res) => {
         }
 
         const b = req.body;
-        const traditional = b.is_traditional !== undefined
-            ? (b.is_traditional ? 1 : 0)
-            : item.is_traditional;
+        const traditional = resolveTraditionalFlag(b.is_traditional, item.is_traditional);
 
         db.prepare(`
             UPDATE culinary_items
