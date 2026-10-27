@@ -149,6 +149,7 @@ router.get('/me', verifyToken, (req, res) => {
         }
         return res.json({ success: true, user });
     } catch (err) {
+        console.error('GET /auth/me error:', err);
         return res.status(500).json({ success: false, message: 'Terjadi kesalahan server.' });
     }
 });
@@ -157,7 +158,7 @@ router.get('/me', verifyToken, (req, res) => {
 router.put('/profile', verifyToken, (req, res) => {
     try {
         const { name, phone, bio, avatar_url } = req.body;
-        if (!name || !name.trim()) {
+        if (!name?.trim()) {
             return res.status(400).json({ success: false, message: 'Nama lengkap wajib diisi.' });
         }
 
@@ -192,6 +193,7 @@ router.get('/users', verifyToken, requireRole('admin'), (req, res) => {
         const users = db.prepare('SELECT id, name, email, role, phone, organization, avatar_url, bio, created_at FROM users ORDER BY id DESC').all();
         return res.json({ success: true, data: users });
     } catch (err) {
+        console.error('GET /auth/users error:', err);
         return res.status(500).json({ success: false, message: 'Terjadi kesalahan server.' });
     }
 });

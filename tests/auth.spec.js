@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import app from '../server.js';
-import db from '../db.js';
-import { JWT_SECRET, optionalAuth, requireRole } from '../middleware/auth.js';
+const db = require('../db');
+const { JWT_SECRET, verifyToken, optionalAuth, requireRole } = require('../middleware/auth');
 
 describe('Authentication and Authorization Detailed Tests', () => {
   const testEmail = `auth_tester_${Date.now()}@example.com`;
@@ -100,13 +100,19 @@ describe('Authentication and Authorization Detailed Tests', () => {
     expect(res.body.success).toBe(false);
   });
 
-  it('POST /api/auth/register fails when missing required fields', async () => {
+  it('POST /api/auth/register fails when missing required fields or invalid types', async () => {
     const res = await request(app)
       .post('/api/auth/register')
       .send({ name: '' });
 
     expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);
+
+    const res2 = await request(app)
+      .post('/api/auth/register')
+      .send({ name: '   ', email: 'valid_whitespace_check@example.com', password: 'password123' });
+    expect(res2.status).toBe(400);
+    expect(res2.body.message).toContain('Data registrasi tidak valid');
   });
 
   it('GET /api/auth/me returns current user info when token is provided', async () => {
@@ -188,8 +194,8 @@ describe('Authentication and Authorization Detailed Tests', () => {
     expect(res.body.message).toContain('kedaluwarsa');
   });
 
-  describe('Auth Middleware Unit Tests', () => {
-    it('optionalAuth handles missing, valid, and invalid header', () => {
+  describe('Auth Middleware & Edge Case Unit Tests', () => {
+    it('optionalAuth handles missing, valid, and invalid header with and without Bearer prefix', () => {
       let nextCalled = false;
       const req1 = { headers: {} };
       optionalAuth(req1, {}, () => { nextCalled = true; });
@@ -202,12 +208,27 @@ describe('Authentication and Authorization Detailed Tests', () => {
       expect(req2.user).toBeDefined();
       expect(req2.user.id).toBe(10);
 
+      // Without Bearer prefix
+      const req2b = { headers: { authorization: validToken } };
+      optionalAuth(req2b, {}, () => {});
+      expect(req2b.user).toBeDefined();
+      expect(req2b.user.id).toBe(10);
+
       const req3 = { headers: { authorization: 'Bearer invalid-token' } };
       optionalAuth(req3, {}, () => {});
       expect(req3.user).toBeUndefined();
     });
 
-    it('requireRole rejects when user is not attached or has wrong role', () => {
+    it('verifyToken accepts raw token without Bearer prefix', () => {
+      const validToken = jwt.sign({ id: 10, role: 'user' }, JWT_SECRET);
+      const req = { headers: { authorization: validToken } };
+      let nextCalled = false;
+      verifyToken(req, {}, () => { nextCalled = true; });
+      expect(nextCalled).toBe(true);
+      expect(req.user.id).toBe(10);
+    });
+
+    it('requireRole handles array of roles and single role', () => {
       const adminOnly = requireRole('admin');
       let status = 0;
       let jsonBody = null;
@@ -229,6 +250,113 @@ describe('Authentication and Authorization Detailed Tests', () => {
       let allowed = false;
       adminOnly({ user: { role: 'admin' } }, res, () => { allowed = true; });
       expect(allowed).toBe(true);
+
+      // Test with array of roles
+      const multiRole = requireRole(['editor', 'admin']);
+      let multiAllowed = false;
+      multiRole({ user: { role: 'admin' } }, res, () => { multiAllowed = true; });
+      expect(multiAllowed).toBe(true);
+    });
+
+    it('login with admin username and sha256 legacy password migration', async () => {
+      // Login with admin username
+      const adminLog = await request(app)
+        .post('/api/auth/login')
+        .send({ username: 'admin', password: 'admin123' });
+      expect(adminLog.status).toBe(200);
+      expect(adminLog.body.success).toBe(true);
+
+      // Legacy SHA256 migration
+      const legacyEmail = `legacy_${Date.now()}@example.com`;
+      const legacyPass = 'legacyPassword123';
+      const sha256Hash = require('node:crypto').createHash('sha256').update(legacyPass).digest('hex');
+      db.prepare('INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)').run('Legacy User', legacyEmail, sha256Hash, 'user');
+
+      // Empty password check
+      const emptyPass = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'admin@jelajahtoba.id', password: '' });
+      expect(emptyPass.status).toBe(400);
+
+      // Non-existent user check
+      const noUser = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'completely_unknown_user_999@example.com', password: 'password123' });
+      expect(noUser.status).toBe(401);
+
+      // Wrong legacy password check
+      const wrongLeg = await request(app)
+        .post('/api/auth/login')
+        .send({ email: legacyEmail, password: 'wrongPasswordHere' });
+      expect(wrongLeg.status).toBe(401);
+
+      // Login with correct password triggers migration to bcrypt
+      const legRes = await request(app)
+        .post('/api/auth/login')
+        .send({ email: legacyEmail, password: legacyPass });
+      expect(legRes.status).toBe(200);
+      expect(legRes.body.success).toBe(true);
+
+      // Verify the password in DB is now a bcrypt hash ($2...)
+      const updatedUser = db.prepare('SELECT password FROM users WHERE email = ?').get(legacyEmail);
+      expect(updatedUser.password.startsWith('$2')).toBe(true);
+    });
+
+    it('GET /api/auth/me returns 404 when user token has non-existent user ID', async () => {
+      const ghostToken = jwt.sign({ id: 99999999, role: 'user' }, JWT_SECRET);
+      const res = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${ghostToken}`);
+      expect(res.status).toBe(404);
+      expect(res.body.success).toBe(false);
+    });
+
+    it('handles unexpected database errors in auth routes gracefully', async () => {
+      const spy = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('Database connection failed');
+      });
+      const loginErr = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'admin@jelajahtoba.com', password: 'password' });
+      expect(loginErr.status).toBe(500);
+      spy.mockRestore();
+
+      const regSpy = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('Database error on register');
+      });
+      const regErr = await request(app)
+        .post('/api/auth/register')
+        .send({ name: 'Error Reg', email: 'err_reg@example.com', password: 'password123' });
+      expect(regErr.status).toBe(500);
+      regSpy.mockRestore();
+
+      const meSpy = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('Database error on me');
+      });
+      const meErr = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(meErr.status).toBe(500);
+      meSpy.mockRestore();
+
+      const profSpy = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('Database error on profile');
+      });
+      const profErr = await request(app)
+        .put('/api/auth/profile')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: 'Admin New Name' });
+      expect(profErr.status).toBe(500);
+      profSpy.mockRestore();
+
+      const usersSpy = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('Database error on users');
+      });
+      const usersErr = await request(app)
+        .get('/api/auth/users')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(usersErr.status).toBe(500);
+      usersSpy.mockRestore();
     });
   });
 });

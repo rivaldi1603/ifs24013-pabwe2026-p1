@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { verifyToken, requireRole } = require('../middleware/auth');
-const { slugify, getPagination, createDeleteHandler } = require('../utils/helpers');
+const { slugify, generateUniqueSlug, createDeleteHandler, sendListQuery, sendPaginatedQuery } = require('../utils/helpers');
 
 // GET /api/culinary (Traditional Batak culinary items)
 router.get('/', (req, res) => {
@@ -16,13 +16,7 @@ router.get('/', (req, res) => {
         }
 
         query += ' ORDER BY id DESC';
-        const data = db.prepare(query).all(...params);
-
-        return res.json({
-            success: true,
-            total: data.length,
-            data
-        });
+        return sendListQuery(res, db, query, params);
     } catch (err) {
         console.error('Error fetching culinary items:', err);
         return res.status(500).json({ success: false, message: 'Gagal memuat kuliner khas Batak.' });
@@ -37,19 +31,14 @@ router.post('/items', verifyToken, requireRole('admin'), (req, res) => {
             return res.status(400).json({ success: false, message: 'Nama makanan/kuliner wajib diisi.' });
         }
 
-        const culinarySlug = slug?.trim() ? slugify(slug.trim()) : `${slugify(name)}-${Date.now().toString().slice(-4)}`;
+        const culinarySlug = slug?.trim() ? slugify(slug.trim()) : generateUniqueSlug(db, 'culinary_items', name);
 
         let traditionalFlag = 1;
         if (is_traditional !== undefined) {
             traditionalFlag = is_traditional ? 1 : 0;
         }
 
-        const stmt = db.prepare(`
-            INSERT INTO culinary_items (name, slug, description, halal_status, origin_region, is_traditional, image_url)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        `);
-
-        const result = stmt.run(
+        const insertRecord = [
             name.trim(),
             culinarySlug,
             description || '',
@@ -57,7 +46,13 @@ router.post('/items', verifyToken, requireRole('admin'), (req, res) => {
             origin_region || 'Kawasan Danau Toba',
             traditionalFlag,
             image_url || ''
-        );
+        ];
+
+        const stmt = db.prepare(`
+            INSERT INTO culinary_items (name, slug, description, halal_status, origin_region, is_traditional, image_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `);
+        const result = stmt.run(...insertRecord);
 
         return res.status(201).json({
             success: true,
@@ -86,11 +81,7 @@ router.put('/items/:id', verifyToken, requireRole('admin'), (req, res) => {
             updatedTraditional = is_traditional ? 1 : 0;
         }
 
-        db.prepare(`
-            UPDATE culinary_items
-            SET name = ?, description = ?, halal_status = ?, origin_region = ?, is_traditional = ?, image_url = ?
-            WHERE id = ?
-        `).run(
+        const updateRecord = [
             name === undefined ? existing.name : name.trim(),
             description === undefined ? existing.description : description,
             halal_status === undefined ? existing.halal_status : halal_status,
@@ -98,7 +89,13 @@ router.put('/items/:id', verifyToken, requireRole('admin'), (req, res) => {
             updatedTraditional,
             image_url === undefined ? existing.image_url : image_url,
             id
-        );
+        ];
+
+        db.prepare(`
+            UPDATE culinary_items
+            SET name = ?, description = ?, halal_status = ?, origin_region = ?, is_traditional = ?, image_url = ?
+            WHERE id = ?
+        `).run(...updateRecord);
 
         return res.json({ success: true, message: 'Menu kuliner berhasil diperbarui.' });
     } catch (err) {
@@ -113,50 +110,40 @@ router.delete('/items/:id', verifyToken, requireRole('admin'), createDeleteHandl
 // GET /api/culinary/restaurants (Eateries & restaurants around Lake Toba)
 router.get('/restaurants', (req, res) => {
     try {
-        const { regency, halal, search, limit = 20, page = 1 } = req.query;
-        let query = `
-            SELECT res.*, r.name as regency_name, r.short_name as regency_short
-            FROM restaurants res
-            JOIN regencies r ON res.regency_id = r.id
-            WHERE 1=1
-        `;
+        const { regency, halal, search } = req.query;
+        let whereFilter = '';
         const params = [];
 
         if (regency) {
-            query += ' AND res.regency_id = ?';
+            whereFilter += ' AND res.regency_id = ?';
             params.push(Number(regency));
         }
 
         if (halal === '1' || halal === 'true') {
-            query += ' AND res.is_halal_certified = 1';
+            whereFilter += ' AND res.is_halal_certified = 1';
         }
 
         if (search) {
-            query += ' AND (res.name LIKE ? OR res.recommended_menu LIKE ? OR res.address LIKE ?)';
+            whereFilter += ' AND (res.name LIKE ? OR res.recommended_menu LIKE ? OR res.address LIKE ?)';
             const term = `%${search.trim()}%`;
             params.push(term, term, term);
         }
 
-        query += ' ORDER BY res.rating_avg DESC, res.id ASC';
+        const countQuery = `
+            SELECT COUNT(*) as total
+            FROM restaurants res
+            JOIN regencies r ON res.regency_id = r.id
+            WHERE 1=1 ${whereFilter}
+        `;
+        const dataQuery = `
+            SELECT res.*, r.name as regency_name, r.short_name as regency_short
+            FROM restaurants res
+            JOIN regencies r ON res.regency_id = r.id
+            WHERE 1=1 ${whereFilter}
+            ORDER BY res.rating_avg DESC, res.id ASC
+        `;
 
-        const countQuery = query.replace('SELECT res.*, r.name as regency_name, r.short_name as regency_short', 'SELECT COUNT(*) as total');
-        const total = db.prepare(countQuery).get(...params).total;
-
-        const { page: parsedPage, limit: parsedLimit, offset } = getPagination(req.query, 20);
-
-        query += ' LIMIT ? OFFSET ?';
-        params.push(parsedLimit, offset);
-
-        const data = db.prepare(query).all(...params);
-
-        return res.json({
-            success: true,
-            total,
-            page: parsedPage,
-            limit: parsedLimit,
-            totalPages: Math.ceil(total / parsedLimit),
-            data
-        });
+        return sendPaginatedQuery(res, db, countQuery, dataQuery, params, req.query, 20);
     } catch (err) {
         console.error('Error fetching restaurants:', err);
         return res.status(500).json({ success: false, message: 'Gagal memuat daftar tempat makan.' });
@@ -164,3 +151,4 @@ router.get('/restaurants', (req, res) => {
 });
 
 module.exports = router;
+

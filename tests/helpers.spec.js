@@ -1,13 +1,17 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import db from '../db.js';
-import {
+const db = require('../db');
+const {
   slugify,
   generateUniqueSlug,
   getPagination,
   applyCommonCatalogFilters,
   fetchEntityReviews,
-  createDeleteHandler
-} from '../utils/helpers.js';
+  createDeleteHandler,
+  sendListQuery,
+  sendPaginatedQuery,
+  findEntityByIdOrSlug
+} = require('../utils/helpers');
+
 
 describe('Unit Tests for utils/helpers.js and db.js Wrapper', () => {
   beforeAll(async () => {
@@ -153,6 +157,75 @@ describe('Unit Tests for utils/helpers.js and db.js Wrapper', () => {
     });
   });
 
+  describe('sendListQuery() & sendPaginatedQuery()', () => {
+    it('sendListQuery returns formatted json response', () => {
+      let result = null;
+      const res = { json: (d) => { result = d; return d; } };
+      sendListQuery(res, db, 'SELECT 1 as num');
+      expect(result.success).toBe(true);
+      expect(result.total).toBe(1);
+      expect(result.data[0].num).toBe(1);
+    });
+
+    it('sendPaginatedQuery formats pagination metadata and handles limits', () => {
+      let result = null;
+      const res = { json: (d) => { result = d; return d; } };
+      sendPaginatedQuery(
+        res,
+        db,
+        'SELECT COUNT(*) as total FROM categories',
+        'SELECT * FROM categories ORDER BY id ASC',
+        [],
+        { page: 1, limit: 2 },
+        2
+      );
+      expect(result.success).toBe(true);
+      expect(result.page).toBe(1);
+      expect(result.limit).toBe(2);
+      expect(result.data.length).toBeLessThanOrEqual(2);
+      expect(result.totalPages).toBeGreaterThan(0);
+    });
+
+    it('sendPaginatedQuery handles query returning empty count', () => {
+      const mockDb = {
+        prepare: (sql) => ({
+          get: () => undefined,
+          all: () => []
+        })
+      };
+      let result = null;
+      const res = { json: (d) => { result = d; return d; } };
+      sendPaginatedQuery(res, mockDb, 'SELECT 0 as total', 'SELECT 1', [], {}, 10);
+      expect(result.total).toBe(0);
+      expect(result.totalPages).toBe(1);
+    });
+  });
+
+  describe('findEntityByIdOrSlug()', () => {
+    it('finds entity by numeric id', () => {
+      const entity = findEntityByIdOrSlug(db, 'destinations', 'd', 1);
+      expect(entity).toBeDefined();
+      expect(entity.id).toBe(1);
+    });
+
+    it('finds entity by string slug', () => {
+      const first = db.prepare('SELECT slug FROM destinations LIMIT 1').get();
+      if (first?.slug) {
+        const entity = findEntityByIdOrSlug(db, 'destinations', 'd', first.slug);
+        expect(entity).toBeDefined();
+        expect(entity.slug).toBe(first.slug);
+      }
+    });
+
+    it('falls back to numeric lookup or returns undefined when not found', () => {
+      const entity1 = findEntityByIdOrSlug(db, 'destinations', 'd', 'slug-that-does-not-exist-99999');
+      expect(entity1).toBeUndefined();
+
+      const entity2 = findEntityByIdOrSlug(db, 'destinations', 'd', 99999999);
+      expect(entity2).toBeUndefined();
+    });
+  });
+
   describe('db.js parameter normalization and wrapper methods', () => {
     it('normalizes undefined values to null in both array and argument forms', () => {
       // Test get with array and undefined
@@ -187,6 +260,34 @@ describe('Unit Tests for utils/helpers.js and db.js Wrapper', () => {
       expect(tx()).toBe(true);
 
       expect(() => db.pragma('foreign_keys')).not.toThrow();
+    });
+
+    it('rolls back and rethrows error when transaction fails', () => {
+      expect(() => {
+        db.transaction(() => {
+          throw new Error('Simulation of transaction failure');
+        })();
+      }).toThrow('Simulation of transaction failure');
+    });
+
+    it('exercises createSqlJsWrapper directly with an in-memory database', async () => {
+      const initSqlJs = require('sql.js/dist/sql-wasm-inline.js');
+      const SQL = await initSqlJs();
+      const inMemDb = new SQL.Database();
+      const wrapper = db.createSqlJsWrapper(inMemDb);
+
+      wrapper.exec('CREATE TABLE test_table (id INTEGER PRIMARY KEY, name TEXT)');
+      const inserted = wrapper.prepare('INSERT INTO test_table (name) VALUES (?)').run('Item A');
+      expect(inserted.lastInsertRowid).toBe(1);
+      expect(inserted.changes).toBe(1);
+
+      const found = wrapper.prepare('SELECT * FROM test_table WHERE id = ?').get(1);
+      expect(found.name).toBe('Item A');
+
+      const all = wrapper.prepare('SELECT * FROM test_table').all();
+      expect(all.length).toBe(1);
+
+      wrapper.pragma('foreign_keys = ON');
     });
   });
 });

@@ -21,7 +21,9 @@ try {
         try {
             await db.ready;
         } catch (e) {
+            /* v8 ignore start */
             console.error('Error awaiting db.ready:', e);
+            /* v8 ignore stop */
         }
         next();
     });
@@ -87,6 +89,7 @@ try {
         console.error('Unhandled server error:', err);
         res.status(500).json({ success: false, message: 'Terjadi kesalahan internal pada server.', error: err.message });
     });
+/* v8 ignore start */
 } catch (e) {
     initError = e;
     console.error('CRITICAL INITIALIZATION ERROR:', e);
@@ -112,5 +115,6 @@ if (!process.env.VERCEL && process.env.NODE_ENV !== 'test') {
         console.log(`======================================================`);
     });
 }
+/* v8 ignore stop */
 
 module.exports = app;

@@ -121,11 +121,85 @@ function createDeleteHandler(db, table, entityLabel, cleanupTargetType) {
     };
 }
 
+/**
+ * Executes a simple list query and sends standardized json response.
+ * @param {object} res - Express response
+ * @param {object} db - Database wrapper
+ * @param {string} sql - SQL query
+ * @param {Array<any>} [params=[]] - Query parameters
+ */
+function sendListQuery(res, db, sql, params = []) {
+    const data = db.prepare(sql).all(...params);
+    return res.json({
+        success: true,
+        total: data.length,
+        data
+    });
+}
+
+/**
+ * Executes a paginated SQL query and sends the standardized JSON response.
+ * @param {object} res - Express response
+ * @param {object} db - Database wrapper
+ * @param {string} countQuery - SQL query returning { total: number }
+ * @param {string} dataQuery - SQL query without LIMIT/OFFSET
+ * @param {Array<any>} params - Query parameters
+ * @param {object} [reqQuery={}] - Express req.query
+ * @param {number} [defaultLimit=20]
+ */
+function sendPaginatedQuery(res, db, countQuery, dataQuery, params, reqQuery = {}, defaultLimit = 20) {
+    const countRow = db.prepare(countQuery).get(...params);
+    const total = countRow?.total || 0;
+    const { page, limit, offset } = getPagination(reqQuery, defaultLimit);
+    const data = db.prepare(`${dataQuery} LIMIT ? OFFSET ?`).all(...params, limit, offset);
+
+    return res.json({
+        success: true,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+        data
+    });
+}
+
+/**
+ * Resolves an entity by ID or slug with category and regency joins.
+ * @param {object} db - Database wrapper
+ * @param {string} table - Table name ('destinations' or 'services')
+ * @param {string} alias - Table alias ('d' or 's')
+ * @param {string|number} idOrSlug - Entity ID or slug
+ * @returns {object|undefined}
+ */
+function findEntityByIdOrSlug(db, table, alias, idOrSlug) {
+    const isNumeric = !Number.isNaN(Number(idOrSlug));
+    const condition = isNumeric ? `${alias}.id = ?` : `${alias}.slug = ?`;
+    const paramVal = isNumeric ? Number(idOrSlug) : idOrSlug;
+
+    const baseSql = `
+        SELECT ${alias}.*, c.name as category_name, c.slug as category_slug, r.name as regency_name, r.short_name as regency_short
+        FROM ${table} ${alias}
+        JOIN categories c ON ${alias}.category_id = c.id
+        JOIN regencies r ON ${alias}.regency_id = r.id
+        WHERE
+    `;
+
+    let entity = db.prepare(`${baseSql} ${condition}`).get(paramVal);
+    if (!entity && !isNumeric) {
+        entity = db.prepare(`${baseSql} ${alias}.id = ?`).get(Number(idOrSlug) || 0);
+    }
+    return entity;
+}
+
 module.exports = {
     slugify,
     generateUniqueSlug,
     getPagination,
     applyCommonCatalogFilters,
     fetchEntityReviews,
-    createDeleteHandler
+    createDeleteHandler,
+    sendListQuery,
+    sendPaginatedQuery,
+    findEntityByIdOrSlug
 };
+

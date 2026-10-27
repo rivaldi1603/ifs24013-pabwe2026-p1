@@ -4,66 +4,53 @@ const db = require('../db');
 const { verifyToken, requireRole } = require('../middleware/auth');
 const {
     generateUniqueSlug,
-    getPagination,
     applyCommonCatalogFilters,
     fetchEntityReviews,
-    createDeleteHandler
+    createDeleteHandler,
+    sendPaginatedQuery,
+    findEntityByIdOrSlug
 } = require('../utils/helpers');
 
 // GET /api/destinations
 router.get('/', (req, res) => {
     try {
         const { search, sort } = req.query;
-        let query = `
-            SELECT d.*, c.name as category_name, c.slug as category_slug, r.name as regency_name, r.short_name as regency_short
-            FROM destinations d
-            JOIN categories c ON d.category_id = c.id
-            JOIN regencies r ON d.regency_id = r.id
-            WHERE 1=1
-        `;
-
         const { conditions, params } = applyCommonCatalogFilters(req.query, 'd');
-        query += conditions;
+        let whereSql = conditions;
 
         if (search) {
-            query += ` AND (d.name LIKE ? OR d.description LIKE ? OR d.address LIKE ?)`;
+            whereSql += ` AND (d.name LIKE ? OR d.description LIKE ? OR d.address LIKE ?)`;
             const term = `%${search.trim()}%`;
             params.push(term, term, term);
         }
 
-        // Sorting
-        if (sort === 'rating') {
-            query += ` ORDER BY d.rating_avg DESC, d.review_count DESC`;
-        } else if (sort === 'price_low') {
-            query += ` ORDER BY d.price_min ASC`;
-        } else if (sort === 'price_high') {
-            query += ` ORDER BY d.price_max DESC`;
-        } else if (sort === 'reviews') {
-            query += ` ORDER BY d.review_count DESC`;
-        } else {
-            query += ` ORDER BY d.id ASC`;
-        }
+        const SORT_OPTIONS = {
+            rating: 'd.rating_avg DESC, d.review_count DESC',
+            price_low: 'd.price_min ASC',
+            price_high: 'd.price_max DESC',
+            reviews: 'd.review_count DESC'
+        };
+        const orderClause = ` ORDER BY ${SORT_OPTIONS[sort] || 'd.id ASC'}`;
 
-        // Count total before pagination
-        const countQuery = query.replace('SELECT d.*, c.name as category_name, c.slug as category_slug, r.name as regency_name, r.short_name as regency_short', 'SELECT COUNT(*) as total');
-        const total = db.prepare(countQuery).get(...params).total;
 
-        // Pagination
-        const { page: parsedPage, limit: parsedLimit, offset } = getPagination(req.query, 20);
+        const countQuery = `
+            SELECT COUNT(*) as total
+            FROM destinations d
+            JOIN categories c ON d.category_id = c.id
+            JOIN regencies r ON d.regency_id = r.id
+            WHERE 1=1 ${whereSql}
+        `;
 
-        query += ` LIMIT ? OFFSET ?`;
-        params.push(parsedLimit, offset);
+        const dataQuery = `
+            SELECT d.*, c.name as category_name, c.slug as category_slug, r.name as regency_name, r.short_name as regency_short
+            FROM destinations d
+            JOIN categories c ON d.category_id = c.id
+            JOIN regencies r ON d.regency_id = r.id
+            WHERE 1=1 ${whereSql}
+            ${orderClause}
+        `;
 
-        const data = db.prepare(query).all(...params);
-
-        return res.json({
-            success: true,
-            total,
-            page: parsedPage,
-            limit: parsedLimit,
-            totalPages: Math.ceil(total / parsedLimit),
-            data
-        });
+        return sendPaginatedQuery(res, db, countQuery, dataQuery, params, req.query, 20);
     } catch (err) {
         console.error('Error fetching destinations:', err);
         return res.status(500).json({ success: false, message: 'Gagal memuat data destinasi wisata.' });
@@ -85,6 +72,7 @@ router.get('/featured', (req, res) => {
         const data = db.prepare(query).all();
         return res.json({ success: true, data });
     } catch (err) {
+        console.error('GET /destinations/featured error:', err);
         return res.status(500).json({ success: false, message: 'Gagal memuat destinasi unggulan.' });
     }
 });
@@ -93,17 +81,7 @@ router.get('/featured', (req, res) => {
 router.get('/:idOrSlug', (req, res) => {
     try {
         const { idOrSlug } = req.params;
-        const isNumeric = !Number.isNaN(Number(idOrSlug));
-        const condition = isNumeric ? 'd.id = ?' : 'd.slug = ?';
-        const paramVal = isNumeric ? Number(idOrSlug) : idOrSlug;
-
-        const dest = db.prepare(`
-            SELECT d.*, c.name as category_name, c.slug as category_slug, r.name as regency_name, r.short_name as regency_short
-            FROM destinations d
-            JOIN categories c ON d.category_id = c.id
-            JOIN regencies r ON d.regency_id = r.id
-            WHERE ${condition}
-        `).get(paramVal);
+        const dest = findEntityByIdOrSlug(db, 'destinations', 'd', idOrSlug);
 
         if (!dest) {
             return res.status(404).json({ success: false, message: 'Destinasi wisata tidak ditemukan.' });
@@ -144,7 +122,7 @@ router.post('/', verifyToken, requireRole(['admin', 'partner']), (req, res) => {
             operational_hours, contact_phone, contact_wa, is_community_managed, image_url
         } = req.body;
 
-        if (!name || !category_id || !regency_id) {
+        if (!name?.trim() || !category_id || !regency_id) {
             return res.status(400).json({ success: false, message: 'Nama, kategori, dan kabupaten wajib diisi.' });
         }
 
@@ -221,10 +199,10 @@ router.put('/:id', verifyToken, requireRole(['admin', 'partner']), (req, res) =>
             WHERE id = ?
         `);
 
-        let communityVal = null;
-        if (is_community_managed !== undefined) {
-            communityVal = is_community_managed ? 1 : 0;
-        }
+        const communityVal = is_community_managed !== undefined
+            ? (is_community_managed ? 1 : 0)
+            : null;
+
 
         stmt.run(
             name ? name.trim() : null,

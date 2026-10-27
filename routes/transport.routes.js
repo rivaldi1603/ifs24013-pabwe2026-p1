@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { verifyToken, requireRole } = require('../middleware/auth');
-const { createDeleteHandler } = require('../utils/helpers');
+const { createDeleteHandler, sendListQuery } = require('../utils/helpers');
 
 // GET /api/transport
 router.get('/', (req, res) => {
@@ -17,13 +17,7 @@ router.get('/', (req, res) => {
         }
 
         query += ' ORDER BY id DESC';
-        const data = db.prepare(query).all(...params);
-
-        return res.json({
-            success: true,
-            total: data.length,
-            data
-        });
+        return sendListQuery(res, db, query, params);
     } catch (err) {
         console.error('Error fetching transport:', err);
         return res.status(500).json({ success: false, message: 'Gagal memuat jadwal transportasi.' });
@@ -35,21 +29,21 @@ router.post('/', verifyToken, requireRole('admin'), (req, res) => {
     try {
         const { name, transport_type, route_direction, vehicle_type, departure_hours, price_display, description, operator, contact } = req.body;
 
-        if (!name || !route_direction) {
+        if (!name?.trim() || !route_direction?.trim()) {
             return res.status(400).json({ success: false, message: 'Nama rute dan arah rute wajib diisi.' });
         }
 
-        const validTypes = ['ferry', 'land_shuttle', 'traditional_boat'];
-        const type = validTypes.includes(transport_type) ? transport_type : 'ferry';
+        const allowedModes = ['ferry', 'land_shuttle', 'traditional_boat'];
+        const resolvedType = allowedModes.includes(transport_type) ? transport_type : 'ferry';
 
         const stmt = db.prepare(`
             INSERT INTO transport_routes (name, transport_type, route_direction, vehicle_type, departure_hours, price_display, description, operator, contact)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
-        const result = stmt.run(
+        const insertPayload = [
             name.trim(),
-            type,
+            resolvedType,
             route_direction.trim(),
             vehicle_type || 'Kapal Motor Penyeberangan (KMP)',
             departure_hours || 'Setiap 1 Jam',
@@ -57,7 +51,8 @@ router.post('/', verifyToken, requireRole('admin'), (req, res) => {
             description || '',
             operator || 'Dishub / Swasta',
             contact || ''
-        );
+        ];
+        const result = stmt.run(...insertPayload);
 
         return res.status(201).json({
             success: true,
@@ -81,16 +76,12 @@ router.put('/:id', verifyToken, requireRole('admin'), (req, res) => {
             return res.status(404).json({ success: false, message: 'Rute transportasi tidak ditemukan.' });
         }
 
-        const validTypes = ['ferry', 'land_shuttle', 'traditional_boat'];
-        const type = validTypes.includes(transport_type) ? transport_type : existing.transport_type;
+        const allowedModes = ['ferry', 'land_shuttle', 'traditional_boat'];
+        const resolvedType = allowedModes.includes(transport_type) ? transport_type : existing.transport_type;
 
-        db.prepare(`
-            UPDATE transport_routes
-            SET name = ?, transport_type = ?, route_direction = ?, vehicle_type = ?, departure_hours = ?, price_display = ?, description = ?, operator = ?, contact = ?
-            WHERE id = ?
-        `).run(
+        const updateFields = [
             name === undefined ? existing.name : name.trim(),
-            type,
+            resolvedType,
             route_direction === undefined ? existing.route_direction : route_direction.trim(),
             vehicle_type === undefined ? existing.vehicle_type : vehicle_type,
             departure_hours === undefined ? existing.departure_hours : departure_hours,
@@ -99,7 +90,13 @@ router.put('/:id', verifyToken, requireRole('admin'), (req, res) => {
             operator === undefined ? existing.operator : operator,
             contact === undefined ? existing.contact : contact,
             id
-        );
+        ];
+
+        db.prepare(`
+            UPDATE transport_routes
+            SET name = ?, transport_type = ?, route_direction = ?, vehicle_type = ?, departure_hours = ?, price_display = ?, description = ?, operator = ?, contact = ?
+            WHERE id = ?
+        `).run(...updateFields);
 
         return res.json({ success: true, message: 'Rute transportasi berhasil diperbarui.' });
     } catch (err) {
@@ -112,3 +109,4 @@ router.put('/:id', verifyToken, requireRole('admin'), (req, res) => {
 router.delete('/:id', verifyToken, requireRole('admin'), createDeleteHandler(db, 'transport_routes', 'Rute transportasi'));
 
 module.exports = router;
+

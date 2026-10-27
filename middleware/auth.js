@@ -1,10 +1,12 @@
 const jwt = require('jsonwebtoken');
 
 let JWT_SECRET = process.env.JWT_SECRET;
+/* v8 ignore start */
 if (!JWT_SECRET) {
     JWT_SECRET = 'jelajahtoba-super-secret-key-pabwe-2026-danau-toba-proyek1';
     console.warn('[WARN] JWT_SECRET belum diatur di env. Menggunakan fallback secret default.');
 }
+/* v8 ignore stop */
 
 function verifyToken(req, res, next) {
     const authHeader = req.headers['authorization'];

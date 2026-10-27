@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import app from '../server.js';
-import db from '../db.js';
-import { JWT_SECRET } from '../middleware/auth.js';
+const db = require('../db');
+const { JWT_SECRET } = require('../middleware/auth');
 
 describe('CRUD Operations & Route Parameters Test Suite', () => {
   let adminToken = '';
@@ -34,6 +34,9 @@ describe('CRUD Operations & Route Parameters Test Suite', () => {
 
       const res3 = await request(app).get('/api/destinations?sort=reviews');
       expect(res3.status).toBe(200);
+
+      const res4 = await request(app).get('/api/destinations?sort=rating');
+      expect(res4.status).toBe(200);
     });
 
     it('GET /api/destinations/:idOrSlug with numeric ID', async () => {
@@ -94,7 +97,8 @@ describe('CRUD Operations & Route Parameters Test Suite', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Bukit Holbung Diperbarui',
-          price_display: 'Rp 15.000'
+          price_display: 'Rp 15.000',
+          is_community_managed: true
         });
 
       expect(res.status).toBe(200);
@@ -184,7 +188,8 @@ describe('CRUD Operations & Route Parameters Test Suite', () => {
         .put(`/api/services/${createdServiceId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          name: 'Homestay Bagus Toba Updated'
+          name: 'Homestay Bagus Toba Updated',
+          is_community_managed: true
         });
 
       expect(res.status).toBe(200);
@@ -257,10 +262,23 @@ describe('CRUD Operations & Route Parameters Test Suite', () => {
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
     });
+
+    it('GET /api/transport with type query parameter', async () => {
+      const res = await request(app).get('/api/transport?type=ferry');
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+    });
   });
 
   describe('Culinary CRUD & Restaurants', () => {
     let createdCulId = null;
+
+    it('GET /api/culinary with halal=1 and halal=true filters', async () => {
+      const res1 = await request(app).get('/api/culinary?halal=1');
+      expect(res1.status).toBe(200);
+      const res2 = await request(app).get('/api/culinary?halal=true');
+      expect(res2.status).toBe(200);
+    });
 
     it('GET /api/culinary/restaurants returns eateries with pagination', async () => {
       const res = await request(app).get('/api/culinary/restaurants?page=1&limit=5');
@@ -275,6 +293,14 @@ describe('CRUD Operations & Route Parameters Test Suite', () => {
       expect(res.body.success).toBe(true);
     });
 
+    it('POST /api/culinary/items fails when name is missing', async () => {
+      const res = await request(app)
+        .post('/api/culinary/items')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: '' });
+      expect(res.status).toBe(400);
+    });
+
     it('POST /api/culinary/items creates culinary menu', async () => {
       const res = await request(app)
         .post('/api/culinary/items')
@@ -283,6 +309,7 @@ describe('CRUD Operations & Route Parameters Test Suite', () => {
           name: 'Kue Gadong Toba',
           halal_status: 'Halal',
           origin_region: 'Balige',
+          is_traditional: false,
           description: 'Kue tradisional berbahan ubi kayu khas Batak'
         });
 
@@ -296,7 +323,7 @@ describe('CRUD Operations & Route Parameters Test Suite', () => {
       const res = await request(app)
         .put(`/api/culinary/items/${createdCulId}`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ name: 'Kue Gadong Toba Manis' });
+        .send({ name: 'Kue Gadong Toba Manis', is_traditional: false });
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -467,6 +494,16 @@ describe('CRUD Operations & Route Parameters Test Suite', () => {
       expect(res.status).toBe(400);
     });
 
+    it('POST /api/reviews rejects missing required fields', async () => {
+      const res = await request(app)
+        .post('/api/reviews')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain('wajib diisi');
+    });
+
     it('DELETE /api/reviews/:id allows admin to moderate and delete review', async () => {
       const res = await request(app)
         .delete(`/api/reviews/${reviewId}`)
@@ -474,6 +511,266 @@ describe('CRUD Operations & Route Parameters Test Suite', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
+    });
+  });
+
+  describe('Route Database Error Handlers & Edge Cases', () => {
+    it('handles database errors in meta routes', async () => {
+      const spy = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on categories');
+      });
+      const catRes = await request(app).get('/api/meta/categories');
+      expect(catRes.status).toBe(500);
+      spy.mockRestore();
+
+      const spy2 = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on regencies');
+      });
+      const regRes = await request(app).get('/api/meta/regencies');
+      expect(regRes.status).toBe(500);
+      spy2.mockRestore();
+
+      const spy3 = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on stats');
+      });
+      const statsRes = await request(app).get('/api/meta/stats');
+      expect(statsRes.status).toBe(500);
+      spy3.mockRestore();
+    });
+
+    it('handles database errors in articles routes', async () => {
+      const spy1 = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on get articles');
+      });
+      const getRes = await request(app).get('/api/articles');
+      expect(getRes.status).toBe(500);
+      spy1.mockRestore();
+
+      const spy2 = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on post article');
+      });
+      const postRes = await request(app)
+        .post('/api/articles')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ title: 'Test DB Error Article' });
+      expect(postRes.status).toBe(500);
+      spy2.mockRestore();
+
+      const spy3 = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on put article');
+      });
+      const putRes = await request(app)
+        .put('/api/articles/1')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ title: 'Updated Title Error' });
+      expect(putRes.status).toBe(500);
+      spy3.mockRestore();
+    });
+
+    it('handles database errors and edge cases in transport routes', async () => {
+      const spy1 = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on transport get');
+      });
+      const getRes = await request(app).get('/api/transport');
+      expect(getRes.status).toBe(500);
+      spy1.mockRestore();
+
+      const spy2 = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on transport post');
+      });
+      const postRes = await request(app)
+        .post('/api/transport')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: 'Rute Error', route_direction: 'A ke B' });
+      expect(postRes.status).toBe(500);
+      spy2.mockRestore();
+
+      const spy3 = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on transport put');
+      });
+      const putRes = await request(app)
+        .put('/api/transport/1')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: 'Rute Updated Error' });
+      expect(putRes.status).toBe(500);
+      spy3.mockRestore();
+
+      // PUT transport not found 404
+      const notFoundRes = await request(app)
+        .put('/api/transport/99999999')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: 'Non Existent' });
+      expect(notFoundRes.status).toBe(404);
+    });
+
+    it('handles database errors and edge cases in culinary routes', async () => {
+      const spy1 = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on culinary get');
+      });
+      const getRes = await request(app).get('/api/culinary');
+      expect(getRes.status).toBe(500);
+      spy1.mockRestore();
+
+      const spy2 = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on culinary post');
+      });
+      const postRes = await request(app)
+        .post('/api/culinary/items')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: 'Makanan DB Error' });
+      expect(postRes.status).toBe(500);
+      spy2.mockRestore();
+
+      const spy3 = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on culinary put');
+      });
+      const putRes = await request(app)
+        .put('/api/culinary/items/1')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: 'Makanan Update Error' });
+      expect(putRes.status).toBe(500);
+      spy3.mockRestore();
+
+      const spy4 = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on restaurants');
+      });
+      const restRes = await request(app).get('/api/culinary/restaurants');
+      expect(restRes.status).toBe(500);
+      spy4.mockRestore();
+
+      // PUT culinary not found 404
+      const notFoundRes = await request(app)
+        .put('/api/culinary/items/99999999')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: 'Non Existent Item' });
+      expect(notFoundRes.status).toBe(404);
+    });
+
+    it('handles database errors and edge cases in destinations routes', async () => {
+      const spy1 = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on destinations get');
+      });
+      const getRes = await request(app).get('/api/destinations');
+      expect(getRes.status).toBe(500);
+      spy1.mockRestore();
+
+      const spy2 = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on destinations featured');
+      });
+      const featRes = await request(app).get('/api/destinations/featured');
+      expect(featRes.status).toBe(500);
+      spy2.mockRestore();
+
+      const spy3 = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on destination detail');
+      });
+      const detRes = await request(app).get('/api/destinations/1');
+      expect(detRes.status).toBe(500);
+      spy3.mockRestore();
+
+      const spy4 = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on destination create');
+      });
+      const postRes = await request(app)
+        .post('/api/destinations')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: 'Wisata Error', category_id: 1, regency_id: 1 });
+      expect(postRes.status).toBe(500);
+      spy4.mockRestore();
+
+      const spy5 = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on destination update');
+      });
+      const putRes = await request(app)
+        .put('/api/destinations/1')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: 'Wisata Update Error' });
+      expect(putRes.status).toBe(500);
+      spy5.mockRestore();
+
+      // PUT destination not found 404
+      const notFoundRes = await request(app)
+        .put('/api/destinations/99999999')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: 'Non Existent' });
+      expect(notFoundRes.status).toBe(404);
+    });
+
+    it('handles database errors and edge cases in services routes', async () => {
+      const spy1 = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on services get');
+      });
+      const getRes = await request(app).get('/api/services');
+      expect(getRes.status).toBe(500);
+      spy1.mockRestore();
+
+      const spy2 = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on service detail');
+      });
+      const detRes = await request(app).get('/api/services/1');
+      expect(detRes.status).toBe(500);
+      spy2.mockRestore();
+
+      const spy3 = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on service create');
+      });
+      const postRes = await request(app)
+        .post('/api/services')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: 'Jasa Error', category_id: 1, regency_id: 1, provider_name: 'Provider' });
+      expect(postRes.status).toBe(500);
+      spy3.mockRestore();
+
+      const spy4 = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on service update');
+      });
+      const putRes = await request(app)
+        .put('/api/services/1')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: 'Jasa Update Error' });
+      expect(putRes.status).toBe(500);
+      spy4.mockRestore();
+
+      // PUT service not found 404
+      const notFoundRes = await request(app)
+        .put('/api/services/99999999')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: 'Non Existent' });
+      expect(notFoundRes.status).toBe(404);
+    });
+
+    it('handles database errors and edge cases in reviews routes', async () => {
+      const spy1 = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on reviews get');
+      });
+      const getRes = await request(app).get('/api/reviews');
+      expect(getRes.status).toBe(500);
+      spy1.mockRestore();
+
+      const spy2 = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on reviews post');
+      });
+      const postRes = await request(app)
+        .post('/api/reviews')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ target_type: 'destination', target_id: 1, rating: 5, review_text: 'Bagus sekali pemandangannya' });
+      expect(postRes.status).toBe(500);
+      spy2.mockRestore();
+
+      const spy3 = vi.spyOn(db, 'prepare').mockImplementationOnce(() => {
+        throw new Error('DB error on reviews delete');
+      });
+      const delRes = await request(app)
+        .delete('/api/reviews/1')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(delRes.status).toBe(500);
+      spy3.mockRestore();
+
+      // Non-existent review delete -> 404
+      const notFoundRes = await request(app)
+        .delete('/api/reviews/99999999')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(notFoundRes.status).toBe(404);
     });
   });
 });

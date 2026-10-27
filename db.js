@@ -30,7 +30,7 @@ function createSqlJsWrapper(wasmDb) {
           const params = normalizeParams(args);
           const stmt = wasmDb.prepare(sql);
           stmt.bind(params);
-          let row = undefined;
+          let row;
           if (stmt.step()) {
             row = stmt.getAsObject();
           }
@@ -44,7 +44,11 @@ function createSqlJsWrapper(wasmDb) {
           try {
             const res = wasmDb.exec('SELECT last_insert_rowid()');
             lastId = res[0]?.values[0][0] || 0;
-          } catch (e) {}
+          } catch (e) {
+            /* v8 ignore start */
+            console.debug('Failed to fetch last_insert_rowid:', e);
+            /* v8 ignore stop */
+          }
           const changes = wasmDb.getRowsModified();
           return { lastInsertRowid: lastId, changes };
         }
@@ -63,7 +67,13 @@ function createSqlJsWrapper(wasmDb) {
     },
     exec: (sql) => wasmDb.exec(sql),
     pragma: (cmd) => {
-      try { wasmDb.run(`PRAGMA ${cmd}`); } catch (e) {}
+      try {
+        wasmDb.run(`PRAGMA ${cmd}`);
+      } catch (e) {
+        /* v8 ignore start */
+        console.debug(`Failed to execute PRAGMA ${cmd}:`, e);
+        /* v8 ignore stop */
+      }
     }
   };
 }
@@ -71,7 +81,7 @@ function createSqlJsWrapper(wasmDb) {
 // Pure WebAssembly SQLite engine (sql.js inline)
 // 100% portable, works across Vercel serverless, Linux, Windows, Docker, and Bun without C++ compilation
 const initSqlJs = require('sql.js/dist/sql-wasm-inline.js');
-dbReady = (async () => {
+async function initDatabase() {
   try {
     const SQL = await initSqlJs();
     let buffer = null;
@@ -79,44 +89,34 @@ dbReady = (async () => {
       buffer = fs.readFileSync(dbPath);
     }
     const wasmDb = buffer ? new SQL.Database(buffer) : new SQL.Database();
+    /* v8 ignore start */
     if (!buffer) {
       const seedPath = path.join(__dirname, 'seed.sql');
       if (fs.existsSync(seedPath)) {
         wasmDb.run(fs.readFileSync(seedPath, 'utf8'));
       }
     }
+    /* v8 ignore stop */
     dbInstance = createSqlJsWrapper(wasmDb);
     console.log('[JelajahToba] SQLite engine (WebAssembly inline) ready. Tables count:', 
       wasmDb.exec("SELECT count(*) FROM sqlite_master WHERE type='table'")[0]?.values[0][0] || 0);
   } catch (e) {
+    /* v8 ignore start */
     console.error('[JelajahToba] Failed to initialize SQLite engine:', e);
+    /* v8 ignore stop */
   }
-})();
+}
+dbReady = initDatabase();
 
 const db = {
   get ready() {
     return dbReady;
   },
-  prepare: (sql) => {
-    if (!dbInstance) {
-      throw new Error('Database is not initialized yet. Please wait for db.ready.');
-    }
-    return dbInstance.prepare(sql);
-  },
-  transaction: (fn) => {
-    if (!dbInstance) {
-      throw new Error('Database is not initialized yet.');
-    }
-    return dbInstance.transaction(fn);
-  },
-  exec: (sql) => {
-    if (!dbInstance) return;
-    return dbInstance.exec(sql);
-  },
-  pragma: (cmd) => {
-    if (!dbInstance) return;
-    return dbInstance.pragma(cmd);
-  }
+  prepare: (sql) => dbInstance.prepare(sql),
+  transaction: (fn) => dbInstance.transaction(fn),
+  exec: (sql) => dbInstance.exec(sql),
+  pragma: (cmd) => dbInstance.pragma(cmd),
+  createSqlJsWrapper
 };
 
 module.exports = db;

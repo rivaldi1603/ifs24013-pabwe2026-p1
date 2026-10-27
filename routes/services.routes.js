@@ -4,59 +4,49 @@ const db = require('../db');
 const { verifyToken, requireRole } = require('../middleware/auth');
 const {
     generateUniqueSlug,
-    getPagination,
     applyCommonCatalogFilters,
     fetchEntityReviews,
-    createDeleteHandler
+    createDeleteHandler,
+    sendPaginatedQuery,
+    findEntityByIdOrSlug
 } = require('../utils/helpers');
 
 // GET /api/services
 router.get('/', (req, res) => {
     try {
         const { service_type, search } = req.query;
-
-        let query = `
-            SELECT s.*, c.name as category_name, c.slug as category_slug, r.name as regency_name, r.short_name as regency_short
-            FROM services s
-            JOIN categories c ON s.category_id = c.id
-            JOIN regencies r ON s.regency_id = r.id
-            WHERE 1=1
-        `;
-
         const { conditions, params } = applyCommonCatalogFilters(req.query, 's');
-        query += conditions;
+        let extraWhere = conditions;
 
         if (service_type) {
-            query += ` AND s.service_type = ?`;
+            extraWhere += ` AND s.service_type = ?`;
             params.push(service_type);
         }
 
         if (search) {
-            query += ` AND (s.name LIKE ? OR s.description LIKE ? OR s.provider_name LIKE ? OR s.address LIKE ?)`;
+            extraWhere += ` AND (s.name LIKE ? OR s.description LIKE ? OR s.provider_name LIKE ? OR s.address LIKE ?)`;
             const term = `%${search.trim()}%`;
             params.push(term, term, term, term);
         }
 
-        query += ` ORDER BY s.is_community_managed DESC, s.rating_avg DESC, s.id ASC`;
+        const countQuery = `
+            SELECT COUNT(*) as total
+            FROM services s
+            JOIN categories c ON s.category_id = c.id
+            JOIN regencies r ON s.regency_id = r.id
+            WHERE 1=1 ${extraWhere}
+        `;
 
-        const countQuery = query.replace('SELECT s.*, c.name as category_name, c.slug as category_slug, r.name as regency_name, r.short_name as regency_short', 'SELECT COUNT(*) as total');
-        const total = db.prepare(countQuery).get(...params).total;
+        const dataQuery = `
+            SELECT s.*, c.name as category_name, c.slug as category_slug, r.name as regency_name, r.short_name as regency_short
+            FROM services s
+            JOIN categories c ON s.category_id = c.id
+            JOIN regencies r ON s.regency_id = r.id
+            WHERE 1=1 ${extraWhere}
+            ORDER BY s.is_community_managed DESC, s.rating_avg DESC, s.id ASC
+        `;
 
-        const { page: parsedPage, limit: parsedLimit, offset } = getPagination(req.query, 20);
-
-        query += ` LIMIT ? OFFSET ?`;
-        params.push(parsedLimit, offset);
-
-        const data = db.prepare(query).all(...params);
-
-        return res.json({
-            success: true,
-            total,
-            page: parsedPage,
-            limit: parsedLimit,
-            totalPages: Math.ceil(total / parsedLimit),
-            data
-        });
+        return sendPaginatedQuery(res, db, countQuery, dataQuery, params, req.query, 20);
     } catch (err) {
         console.error('Error fetching services:', err);
         return res.status(500).json({ success: false, message: 'Gagal memuat direktori jasa dan pengalaman lokal.' });
@@ -67,27 +57,7 @@ router.get('/', (req, res) => {
 router.get('/:idOrSlug', (req, res) => {
     try {
         const { idOrSlug } = req.params;
-        const isNumeric = !Number.isNaN(Number(idOrSlug));
-        const condition = isNumeric ? 's.id = ?' : 's.slug = ?';
-        const paramVal = isNumeric ? Number(idOrSlug) : idOrSlug;
-
-        let srv = db.prepare(`
-            SELECT s.*, c.name as category_name, c.slug as category_slug, r.name as regency_name, r.short_name as regency_short
-            FROM services s
-            JOIN categories c ON s.category_id = c.id
-            JOIN regencies r ON s.regency_id = r.id
-            WHERE ${condition}
-        `).get(paramVal);
-
-        if (!srv && !isNumeric) {
-            srv = db.prepare(`
-                SELECT s.*, c.name as category_name, c.slug as category_slug, r.name as regency_name, r.short_name as regency_short
-                FROM services s
-                JOIN categories c ON s.category_id = c.id
-                JOIN regencies r ON s.regency_id = r.id
-                WHERE s.id = ?
-            `).get(Number(idOrSlug) || 0);
-        }
+        const srv = findEntityByIdOrSlug(db, 'services', 's', idOrSlug);
 
         if (!srv) {
             return res.status(404).json({ success: false, message: 'Layanan / jasa lokal tidak ditemukan.' });
@@ -204,10 +174,10 @@ router.put('/:id', verifyToken, requireRole(['admin', 'partner']), (req, res) =>
             WHERE id = ?
         `);
 
-        let communityVal = null;
-        if (is_community_managed !== undefined) {
-            communityVal = is_community_managed ? 1 : 0;
-        }
+        const communityVal = is_community_managed !== undefined
+            ? (is_community_managed ? 1 : 0)
+            : null;
+
 
         stmt.run(
             name ? name.trim() : null,
