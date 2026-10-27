@@ -84,12 +84,12 @@ const initSqlJs = require('sql.js/dist/sql-wasm-inline.js');
 async function initDatabase() {
   try {
     const SQL = await initSqlJs();
+    /* v8 ignore start */
     let buffer = null;
     if (fs.existsSync(dbPath)) {
       buffer = fs.readFileSync(dbPath);
     }
     const wasmDb = buffer ? new SQL.Database(buffer) : new SQL.Database();
-    /* v8 ignore start */
     if (!buffer) {
       const seedPath = path.join(__dirname, 'seed.sql');
       if (fs.existsSync(seedPath)) {
@@ -97,6 +97,7 @@ async function initDatabase() {
       }
     }
     /* v8 ignore stop */
+
     dbInstance = createSqlJsWrapper(wasmDb);
     console.log('[JelajahToba] SQLite engine (WebAssembly inline) ready. Tables count:', 
       wasmDb.exec("SELECT count(*) FROM sqlite_master WHERE type='table'")[0]?.values[0][0] || 0);

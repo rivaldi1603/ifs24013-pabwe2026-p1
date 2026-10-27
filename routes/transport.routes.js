@@ -8,21 +8,16 @@ const { createDeleteHandler, sendListQuery } = require('../utils/helpers');
 router.get('/', (req, res) => {
     try {
         const { type } = req.query;
-        let query = 'SELECT * FROM transport_routes WHERE 1=1';
-        const params = [];
-
         if (type) {
-            query += ' AND transport_type = ?';
-            params.push(type);
+            return sendListQuery(res, db, 'SELECT * FROM transport_routes WHERE transport_type = ? ORDER BY id DESC', [type]);
         }
-
-        query += ' ORDER BY id DESC';
-        return sendListQuery(res, db, query, params);
+        return sendListQuery(res, db, 'SELECT * FROM transport_routes ORDER BY id DESC');
     } catch (err) {
         console.error('Error fetching transport:', err);
         return res.status(500).json({ success: false, message: 'Gagal memuat jadwal transportasi.' });
     }
 });
+
 
 // POST /api/transport (Admin only)
 router.post('/', verifyToken, requireRole('admin'), (req, res) => {

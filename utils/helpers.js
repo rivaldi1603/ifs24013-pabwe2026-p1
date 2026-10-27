@@ -192,6 +192,39 @@ function findEntityByIdOrSlug(db, table, alias, idOrSlug) {
 }
 
 /**
+ * Creates an Express route handler for entity detail (by ID or slug) with reviews and related items.
+ * @param {object} options
+ * @returns {Function} Express route handler
+ */
+function createEntityDetailHandler(options) {
+    const { db, table, alias, entityLabel, reviewTargetType, relatedQuery, relatedParams } = options;
+    return (req, res) => {
+        try {
+            const { idOrSlug } = req.params;
+            const entity = findEntityByIdOrSlug(db, table, alias, idOrSlug);
+            if (!entity) {
+                return res.status(404).json({ success: false, message: `${entityLabel} tidak ditemukan.` });
+            }
+
+            const reviews = fetchEntityReviews(db, reviewTargetType, entity.id);
+            const related = db.prepare(relatedQuery).all(...relatedParams(entity));
+
+            return res.json({
+                success: true,
+                data: {
+                    ...entity,
+                    reviews,
+                    related
+                }
+            });
+        } catch (err) {
+            console.error(`Error fetching ${table} detail:`, err);
+            return res.status(500).json({ success: false, message: `Gagal memuat detail ${entityLabel.toLowerCase()}.` });
+        }
+    };
+}
+
+/**
  * Normalizes community managed flag to SQLite integer or null.
  * Eliminates nested ternaries and negated conditions.
  * @param {any} val
@@ -214,7 +247,9 @@ module.exports = {
     sendListQuery,
     sendPaginatedQuery,
     findEntityByIdOrSlug,
-    normalizeCommunityFlag
+    normalizeCommunityFlag,
+    createEntityDetailHandler
 };
+
 
 

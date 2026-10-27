@@ -9,8 +9,10 @@ const {
     createDeleteHandler,
     sendPaginatedQuery,
     findEntityByIdOrSlug,
-    normalizeCommunityFlag
+    normalizeCommunityFlag,
+    createEntityDetailHandler
 } = require('../utils/helpers');
+
 
 
 // GET /api/destinations
@@ -80,40 +82,24 @@ router.get('/featured', (req, res) => {
 });
 
 // GET /api/destinations/:idOrSlug
-router.get('/:idOrSlug', (req, res) => {
-    try {
-        const { idOrSlug } = req.params;
-        const dest = findEntityByIdOrSlug(db, 'destinations', 'd', idOrSlug);
+router.get('/:idOrSlug', createEntityDetailHandler({
+    db,
+    table: 'destinations',
+    alias: 'd',
+    entityLabel: 'Destinasi wisata',
+    reviewTargetType: 'destination',
+    relatedQuery: `
+        SELECT d.id, d.name, d.slug, d.image_url, d.price_display, d.rating_avg, c.name as category_name, r.name as regency_name
+        FROM destinations d
+        JOIN categories c ON d.category_id = c.id
+        JOIN regencies r ON d.regency_id = r.id
+        WHERE (d.regency_id = ? OR d.category_id = ?) AND d.id != ?
+        ORDER BY d.rating_avg DESC
+        LIMIT 4
+    `,
+    relatedParams: (dest) => [dest.regency_id, dest.category_id, dest.id]
+}));
 
-        if (!dest) {
-            return res.status(404).json({ success: false, message: 'Destinasi wisata tidak ditemukan.' });
-        }
-
-        const reviews = fetchEntityReviews(db, 'destination', dest.id);
-
-        const related = db.prepare(`
-            SELECT d.id, d.name, d.slug, d.image_url, d.price_display, d.rating_avg, c.name as category_name, r.name as regency_name
-            FROM destinations d
-            JOIN categories c ON d.category_id = c.id
-            JOIN regencies r ON d.regency_id = r.id
-            WHERE (d.regency_id = ? OR d.category_id = ?) AND d.id != ?
-            ORDER BY d.rating_avg DESC
-            LIMIT 4
-        `).all(dest.regency_id, dest.category_id, dest.id);
-
-        return res.json({
-            success: true,
-            data: {
-                ...dest,
-                reviews,
-                related
-            }
-        });
-    } catch (err) {
-        console.error('Error fetching destination detail:', err);
-        return res.status(500).json({ success: false, message: 'Gagal memuat detail destinasi.' });
-    }
-});
 
 // POST /api/destinations (Admin / Partner)
 router.post('/', verifyToken, requireRole(['admin', 'partner']), (req, res) => {

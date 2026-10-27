@@ -7,21 +7,17 @@ const { slugify, generateUniqueSlug, createDeleteHandler, sendListQuery, sendPag
 // GET /api/culinary (Traditional Batak culinary items)
 router.get('/', (req, res) => {
     try {
-        const { halal } = req.query;
-        let query = 'SELECT * FROM culinary_items WHERE 1=1';
-        const params = [];
-
-        if (halal === '1' || halal === 'true') {
-            query += ' AND halal_status = "Halal"';
-        }
-
-        query += ' ORDER BY id DESC';
-        return sendListQuery(res, db, query, params);
+        const isHalal = req.query.halal === '1' || req.query.halal === 'true';
+        const sql = isHalal
+            ? 'SELECT * FROM culinary_items WHERE halal_status = "Halal" ORDER BY id DESC'
+            : 'SELECT * FROM culinary_items ORDER BY id DESC';
+        return sendListQuery(res, db, sql);
     } catch (err) {
         console.error('Error fetching culinary items:', err);
         return res.status(500).json({ success: false, message: 'Gagal memuat kuliner khas Batak.' });
     }
 });
+
 
 // POST /api/culinary/items (Admin only: add culinary item)
 router.post('/items', verifyToken, requireRole('admin'), (req, res) => {

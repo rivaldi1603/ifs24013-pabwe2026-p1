@@ -9,8 +9,10 @@ const {
     createDeleteHandler,
     sendPaginatedQuery,
     findEntityByIdOrSlug,
-    normalizeCommunityFlag
+    normalizeCommunityFlag,
+    createEntityDetailHandler
 } = require('../utils/helpers');
+
 
 
 // GET /api/services
@@ -56,39 +58,23 @@ router.get('/', (req, res) => {
 });
 
 // GET /api/services/:idOrSlug
-router.get('/:idOrSlug', (req, res) => {
-    try {
-        const { idOrSlug } = req.params;
-        const srv = findEntityByIdOrSlug(db, 'services', 's', idOrSlug);
+router.get('/:idOrSlug', createEntityDetailHandler({
+    db,
+    table: 'services',
+    alias: 's',
+    entityLabel: 'Layanan / jasa lokal',
+    reviewTargetType: 'service',
+    relatedQuery: `
+        SELECT s.id, s.name, s.slug, s.provider_name, s.price_display, s.rating_avg, s.service_type, r.name as regency_name
+        FROM services s
+        JOIN regencies r ON s.regency_id = r.id
+        WHERE (s.regency_id = ? OR s.service_type = ?) AND s.id != ?
+        ORDER BY s.rating_avg DESC
+        LIMIT 4
+    `,
+    relatedParams: (srv) => [srv.regency_id, srv.service_type, srv.id]
+}));
 
-        if (!srv) {
-            return res.status(404).json({ success: false, message: 'Layanan / jasa lokal tidak ditemukan.' });
-        }
-
-        const reviews = fetchEntityReviews(db, 'service', srv.id);
-
-        const related = db.prepare(`
-            SELECT s.id, s.name, s.slug, s.provider_name, s.price_display, s.rating_avg, s.service_type, r.name as regency_name
-            FROM services s
-            JOIN regencies r ON s.regency_id = r.id
-            WHERE (s.regency_id = ? OR s.service_type = ?) AND s.id != ?
-            ORDER BY s.rating_avg DESC
-            LIMIT 4
-        `).all(srv.regency_id, srv.service_type, srv.id);
-
-        return res.json({
-            success: true,
-            data: {
-                ...srv,
-                reviews,
-                related
-            }
-        });
-    } catch (err) {
-        console.error('Error fetching service detail:', err);
-        return res.status(500).json({ success: false, message: 'Gagal memuat detail layanan lokal.' });
-    }
-});
 
 // POST /api/services (Admin / Partner)
 router.post('/', verifyToken, requireRole(['admin', 'partner']), (req, res) => {

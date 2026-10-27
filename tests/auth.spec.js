@@ -358,5 +358,75 @@ describe('Authentication and Authorization Detailed Tests', () => {
       expect(usersErr.status).toBe(500);
       usersSpy.mockRestore();
     });
+
+    it('covers all branch conditions in isValidEmail, registration, and profile update', async () => {
+      // 1. isValidEmail length > 254
+      const longEmail = 'a'.repeat(250) + '@example.com';
+      const resLong = await request(app)
+        .post('/api/auth/register')
+        .send({ name: 'Long Email', email: longEmail, password: 'password123' });
+      expect(resLong.status).toBe(400);
+
+      // 2. Login with 'administrator'
+      const resAdmin = await request(app)
+        .post('/api/auth/login')
+        .send({ username: 'administrator', password: 'password' });
+      expect([200, 401]).toContain(resAdmin.status);
+
+      // 3. Register with explicit phone and organization
+      const fullUserEmail = `full_user_${Date.now()}@example.com`;
+      const resFullReg = await request(app)
+        .post('/api/auth/register')
+        .send({
+          name: 'Full Profile User',
+          email: fullUserEmail,
+          password: 'password123',
+          phone: '08123456789',
+          organization: 'Komunitas Toba Kreatif'
+        });
+      expect(resFullReg.status).toBe(201);
+      expect(resFullReg.body.user.phone).toBe('08123456789');
+      expect(resFullReg.body.user.organization).toBe('Komunitas Toba Kreatif');
+
+      // 4. Register with NO phone and NO organization (fallbacks to null)
+      const minUserEmail = `min_user_${Date.now()}@example.com`;
+      const resMinReg = await request(app)
+        .post('/api/auth/register')
+        .send({
+          name: 'Minimal User',
+          email: minUserEmail,
+          password: 'password123'
+        });
+      expect(resMinReg.status).toBe(201);
+      expect(resMinReg.body.user.phone).toBeNull();
+      expect(resMinReg.body.user.organization).toBeNull();
+
+      // 5. Update profile with avatar_url and bio
+      const fullToken = resFullReg.body.token;
+      const resFullProf = await request(app)
+        .put('/api/auth/profile')
+        .set('Authorization', `Bearer ${fullToken}`)
+        .send({
+          name: 'Full Profile Updated',
+          phone: '0811223344',
+          bio: 'Penggiat budaya Batak',
+          avatar_url: 'https://images.unsplash.com/photo-test'
+        });
+      expect(resFullProf.status).toBe(200);
+      expect(resFullProf.body.user.bio).toBe('Penggiat budaya Batak');
+
+      // 6. Update profile without phone, bio, avatar_url (fallbacks to null)
+      const resMinProf = await request(app)
+        .put('/api/auth/profile')
+        .set('Authorization', `Bearer ${fullToken}`)
+        .send({
+          name: 'Minimal Profile Name Only'
+        });
+      expect(resMinProf.status).toBe(200);
+      expect(resMinProf.body.user.phone).toBeNull();
+      expect(resMinProf.body.user.bio).toBeNull();
+      expect(resMinProf.body.user.avatar_url).toBeNull();
+    });
   });
 });
+

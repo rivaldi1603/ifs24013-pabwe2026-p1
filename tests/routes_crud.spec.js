@@ -773,4 +773,307 @@ describe('CRUD Operations & Route Parameters Test Suite', () => {
       expect(notFoundRes.status).toBe(404);
     });
   });
+
+  describe('Complete Route Branch & Fallback Coverage', () => {
+    it('covers all optional fallbacks and branches in POST/PUT /api/articles', async () => {
+      // 1. POST article with explicit slug, regency_id, published_at, summary, source_url
+      const resFull = await request(app)
+        .post('/api/articles')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          title: 'Artikel Lengkap Danau Toba',
+          slug: 'artikel-lengkap-toba-custom',
+          regency_id: 1,
+          summary: 'Ringkasan lengkap artikel',
+          source_url: 'https://jelajahtoba.id/full',
+          published_at: '2026-01-01'
+        });
+      expect(resFull.status).toBe(201);
+      const articleId = resFull.body.data.id;
+
+      // 2. POST article with minimal body (no slug, no regency_id, no published_at, no summary, no source_url)
+      const resMin = await request(app)
+        .post('/api/articles')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          title: 'Artikel Minimalis Danau Toba'
+        });
+      expect(resMin.status).toBe(201);
+
+      // 3. PUT article with explicit regency_id, summary, source_url, published_at
+      const resPutFull = await request(app)
+        .put(`/api/articles/${articleId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          title: 'Artikel Lengkap Updated',
+          regency_id: 2,
+          summary: 'Ringkasan baru',
+          source_url: 'https://jelajahtoba.id/updated',
+          published_at: '2026-02-02'
+        });
+      expect(resPutFull.status).toBe(200);
+
+      // 4. PUT article with minimal body (regency_id falsy, summary/source_url/published_at undefined)
+      const resPutMin = await request(app)
+        .put(`/api/articles/${articleId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          title: 'Artikel Tetap Sama'
+        });
+      expect(resPutMin.status).toBe(200);
+    });
+
+    it('covers all optional fallbacks and branches in POST/PUT /api/culinary/items', async () => {
+      // 1. POST culinary item with explicit slug, traditional true, description, halal_status, origin_region, image_url
+      const resFull = await request(app)
+        .post('/api/culinary/items')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Ikan Mas Arsik Istimewa',
+          slug: 'ikan-mas-arsik-istimewa-slug',
+          description: 'Makanan khas Batak dengan bumbu andaliman',
+          halal_status: 'Halal',
+          origin_region: 'Samosir',
+          is_traditional: true,
+          image_url: 'https://example.com/arsik.jpg'
+        });
+      expect(resFull.status).toBe(201);
+      const culId = resFull.body.data.id;
+
+      // 2. POST culinary item with minimal body (slug generated, default fallbacks for description, halal_status, origin_region, image_url, is_traditional undefined)
+      const resMin = await request(app)
+        .post('/api/culinary/items')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Kopi Lintong Seduh'
+        });
+      expect(resMin.status).toBe(201);
+
+      // 3. PUT culinary item with all fields defined including is_traditional: false
+      const resPutFull = await request(app)
+        .put(`/api/culinary/items/${culId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Ikan Mas Arsik Diperbarui',
+          description: 'Deskripsi baru',
+          halal_status: 'Halal',
+          origin_region: 'Toba',
+          is_traditional: false,
+          image_url: 'https://example.com/new.jpg'
+        });
+      expect(resPutFull.status).toBe(200);
+
+      // 4. PUT culinary item with is_traditional: true
+      const resPutTrad = await request(app)
+        .put(`/api/culinary/items/${culId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          is_traditional: true
+        });
+      expect(resPutTrad.status).toBe(200);
+
+      // 5. PUT culinary item with empty body (all undefined, preserving existing)
+      const resPutEmpty = await request(app)
+        .put(`/api/culinary/items/${culId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({});
+      expect(resPutEmpty.status).toBe(200);
+    });
+
+    it('covers all optional fallbacks and branches in POST/PUT /api/transport', async () => {
+      // 1. POST transport with allowed mode and all fields
+      const resFull = await request(app)
+        .post('/api/transport')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Shuttle Bus Kualanamu - Parapat',
+          transport_type: 'land_shuttle',
+          route_direction: 'Bandara Kualanamu ke Parapat PP',
+          vehicle_type: 'Minibus Toyota HiAce',
+          departure_hours: 'Setiap 2 Jam',
+          price_display: 'Rp 100.000 / kursi',
+          description: 'Transportasi darat nyaman ber-AC',
+          operator: 'Paradep Trans',
+          contact: '08129876543'
+        });
+      expect(resFull.status).toBe(201);
+      const transId = resFull.body.data.id;
+
+      // 2. POST transport with minimal fields and invalid transport_type fallback to 'ferry'
+      const resMin = await request(app)
+        .post('/api/transport')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Kapal Ferry Tomok',
+          route_direction: 'Ajibata ke Tomok',
+          transport_type: 'unknown_mode'
+        });
+      expect(resMin.status).toBe(201);
+
+      // 3. PUT transport with valid transport_type and all fields defined
+      const resPutFull = await request(app)
+        .put(`/api/transport/${transId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Shuttle Bus HiAce VIP',
+          transport_type: 'traditional_boat',
+          route_direction: 'Parapat ke Tomok',
+          vehicle_type: 'Kapal Kayu Tradisional',
+          departure_hours: 'Setiap 30 Menit',
+          price_display: 'Rp 20.000',
+          description: 'Pemandangan danau indah',
+          operator: 'Koperasi Kapal Tomok',
+          contact: '08130000000'
+        });
+      expect(resPutFull.status).toBe(200);
+
+      // 4. PUT transport with empty body (preserving all existing fields)
+      const resPutEmpty = await request(app)
+        .put(`/api/transport/${transId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({});
+      expect(resPutEmpty.status).toBe(200);
+    });
+
+    it('covers all optional fallbacks and branches in POST/PUT /api/destinations', async () => {
+      // 1. POST destination with minimal body (fallbacks taken for lat, lng, price, contact, etc.)
+      const resMin = await request(app)
+        .post('/api/destinations')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Pantai Pasir Putih Parbaba Minimal',
+          category_id: 1,
+          regency_id: 1
+        });
+      expect(resMin.status).toBe(201);
+      const destId = resMin.body.id;
+
+      // 2. POST destination with all numeric and string fields provided
+      const resFull = await request(app)
+        .post('/api/destinations')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Air Terjun Sipiso Piso Eksklusif',
+          category_id: 1,
+          regency_id: 1,
+          description: 'Air terjun megah di ujung utara Danau Toba',
+          address: 'Tongging, Merek, Kabupaten Karo',
+          latitude: 2.915,
+          longitude: 98.528,
+          price_min: 10000,
+          price_max: 25000,
+          price_display: 'Rp 10.000 / orang',
+          operational_hours: '08.00 - 17.00 WIB',
+          contact_phone: '08123456789',
+          contact_wa: '08123456789',
+          is_community_managed: true,
+          image_url: 'https://example.com/sipiso.jpg'
+        });
+      expect(resFull.status).toBe(201);
+
+      // 3. PUT destination with all numeric and string fields provided
+      const resPutFull = await request(app)
+        .put(`/api/destinations/${destId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Pantai Pasir Putih Parbaba Updated',
+          category_id: 2,
+          regency_id: 2,
+          description: 'Pemandangan pasir putih danau',
+          address: 'Jl. Danau No. 1',
+          latitude: 2.6,
+          longitude: 98.7,
+          price_min: 5000,
+          price_max: 15000,
+          price_display: 'Rp 5.000',
+          operational_hours: '07.00 - 19.00 WIB',
+          contact_phone: '0812999999',
+          contact_wa: '0812999999',
+          is_community_managed: true,
+          status: 'verified',
+          image_url: 'https://example.com/parbaba.jpg'
+        });
+      expect(resPutFull.status).toBe(200);
+
+      // 4. PUT destination with empty body (name, category_id, regency_id falsy; lat, lng, price undefined)
+      const resPutMin = await request(app)
+        .put(`/api/destinations/${destId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({});
+      expect(resPutMin.status).toBe(200);
+    });
+
+    it('covers all optional fallbacks and branches in POST/PUT /api/services', async () => {
+      // 1. POST service with minimal body (fallbacks for service_type, prices, contact, etc.)
+      const resMin = await request(app)
+        .post('/api/services')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Pemandu Lokal Wisata Danau Toba',
+          category_id: 1,
+          regency_id: 1,
+          provider_name: 'Pak Pardede'
+        });
+      expect(resMin.status).toBe(201);
+      const serviceId = resMin.body.id;
+
+      // 2. POST service with all fields provided
+      const resFull = await request(app)
+        .post('/api/services')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Sewa Speedboat Danau Toba',
+          category_id: 1,
+          regency_id: 1,
+          provider_name: 'PT Toba Bahari',
+          service_type: 'rental_gear',
+          description: 'Keliling pulau Samosir dengan speedboat cepat',
+          price_min: 300000,
+          price_max: 600000,
+          price_unit: 'per jam',
+          price_display: 'Rp 300.000 / jam',
+          facilities: 'Life vest, captain',
+          address: 'Pelabuhan Ajibata',
+          latitude: 2.66,
+          longitude: 98.93,
+          contact_phone: '081377778888',
+          contact_wa: '081377778888',
+          is_community_managed: true
+        });
+      expect(resFull.status).toBe(201);
+
+      // 3. PUT service with all fields provided
+      const resPutFull = await request(app)
+        .put(`/api/services/${serviceId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Pemandu Lokal Wisata Danau Toba VIP',
+          category_id: 2,
+          regency_id: 2,
+          provider_name: 'Pak Pardede S.Pd',
+          service_type: 'tour_guide',
+          description: 'Pemandu ramah berlisensi resmi',
+          price_min: 250000,
+          price_max: 400000,
+          price_unit: 'per hari',
+          price_display: 'Rp 250.000 / hari',
+          facilities: 'Fotografi, transportasi',
+          address: 'Balige',
+          latitude: 2.33,
+          longitude: 99.06,
+          contact_phone: '081233334444',
+          contact_wa: '081233334444',
+          is_community_managed: true,
+          status: 'verified'
+        });
+      expect(resPutFull.status).toBe(200);
+
+      // 4. PUT service with empty body (name, category_id, regency_id, provider_name falsy; prices and coordinates undefined)
+      const resPutMin = await request(app)
+        .put(`/api/services/${serviceId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({});
+      expect(resPutMin.status).toBe(200);
+    });
+  });
 });

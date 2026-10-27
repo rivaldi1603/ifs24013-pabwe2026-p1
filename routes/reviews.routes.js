@@ -92,12 +92,12 @@ router.post('/', verifyToken, (req, res) => {
                 WHERE target_type = ? AND target_id = ?
             `).get(target_type, Number(target_id));
 
-            const avg = stats.avg_rating ? Math.round(stats.avg_rating * 10) / 10 : parsedRating;
+            const avg = Math.round(stats.avg_rating * 10) / 10;
             const cnt = stats.count || 1;
 
             if (target_type === 'destination') {
                 db.prepare(`UPDATE destinations SET rating_avg = ?, review_count = ? WHERE id = ?`).run(avg, cnt, Number(target_id));
-            } else if (target_type === 'service') {
+            } else {
                 db.prepare(`UPDATE services SET rating_avg = ?, review_count = ? WHERE id = ?`).run(avg, cnt, Number(target_id));
             }
 
@@ -140,11 +140,11 @@ router.delete('/:id', verifyToken, requireRole('admin'), (req, res) => {
             `).get(review.target_type, review.target_id);
 
             const cnt = stats.count || 0;
-            const avg = cnt > 0 && stats.avg_rating ? Math.round(stats.avg_rating * 10) / 10 : 0;
+            const avg = cnt > 0 ? Math.round(stats.avg_rating * 10) / 10 : 0;
 
             if (review.target_type === 'destination') {
                 db.prepare(`UPDATE destinations SET rating_avg = ?, review_count = ? WHERE id = ?`).run(avg, cnt, review.target_id);
-            } else if (review.target_type === 'service') {
+            } else {
                 db.prepare(`UPDATE services SET rating_avg = ?, review_count = ? WHERE id = ?`).run(avg, cnt, review.target_id);
             }
         });
