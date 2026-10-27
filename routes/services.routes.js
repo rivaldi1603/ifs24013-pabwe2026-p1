@@ -1,17 +1,16 @@
 const express = require('express');
-const router = express.Router();
-const db = require('../db');
 const { verifyToken, requireRole } = require('../middleware/auth');
+const db = require('../db');
 const {
     generateUniqueSlug,
     applyCommonCatalogFilters,
-    fetchEntityReviews,
     createDeleteHandler,
     sendPaginatedQuery,
-    findEntityByIdOrSlug,
     normalizeCommunityFlag,
-    createEntityDetailHandler
+    createEntityDetailHandler,
+    createUpdateHandler
 } = require('../utils/helpers');
+const router = express.Router();
 
 
 
@@ -125,69 +124,57 @@ router.post('/', verifyToken, requireRole(['admin', 'partner']), (req, res) => {
 });
 
 // PUT /api/services/:id (Admin / Partner)
-router.put('/:id', verifyToken, requireRole(['admin', 'partner']), (req, res) => {
-    try {
-        const { id } = req.params;
-        const existing = db.prepare('SELECT id FROM services WHERE id = ?').get(id);
-        if (!existing) {
-            return res.status(404).json({ success: false, message: 'Layanan lokal tidak ditemukan.' });
-        }
-
-        const {
-            name, category_id, regency_id, provider_name, service_type,
-            description, price_min, price_max, price_unit, price_display,
-            facilities, address, latitude, longitude, contact_phone, contact_wa, is_community_managed, status
-        } = req.body;
-
-        const stmt = db.prepare(`
-            UPDATE services SET
-                name = COALESCE(?, name),
-                category_id = COALESCE(?, category_id),
-                regency_id = COALESCE(?, regency_id),
-                provider_name = COALESCE(?, provider_name),
-                service_type = COALESCE(?, service_type),
-                description = COALESCE(?, description),
-                price_min = COALESCE(?, price_min),
-                price_max = COALESCE(?, price_max),
-                price_unit = COALESCE(?, price_unit),
-                price_display = COALESCE(?, price_display),
-                facilities = COALESCE(?, facilities),
-                address = COALESCE(?, address),
-                latitude = COALESCE(?, latitude),
-                longitude = COALESCE(?, longitude),
-                contact_phone = COALESCE(?, contact_phone),
-                contact_wa = COALESCE(?, contact_wa),
-                is_community_managed = COALESCE(?, is_community_managed),
-                status = COALESCE(?, status)
-            WHERE id = ?
-        `);
-
-        const communityVal = normalizeCommunityFlag(is_community_managed);
-
-
-
-        stmt.run(
-            name ? name.trim() : null,
-            category_id ? Number(category_id) : null,
-            regency_id ? Number(regency_id) : null,
-            provider_name ? provider_name.trim() : null,
-            service_type, description,
-            price_min === undefined ? null : Number(price_min),
-            price_max === undefined ? null : Number(price_max),
-            price_unit, price_display, facilities, address,
-            latitude === undefined ? null : Number(latitude),
-            longitude === undefined ? null : Number(longitude),
-            contact_phone, contact_wa,
-            communityVal,
-            status, id
-        );
-
-        return res.json({ success: true, message: 'Data layanan lokal berhasil diperbarui.' });
-    } catch (err) {
-        console.error('Error updating service:', err);
-        return res.status(500).json({ success: false, message: 'Gagal memperbarui layanan lokal.' });
+router.put('/:id', verifyToken, requireRole(['admin', 'partner']), createUpdateHandler({
+    db,
+    table: 'services',
+    entityLabel: 'Layanan lokal',
+    buildUpdate: (req) => {
+        const payload = req.body;
+        const setStatements = [
+            'name = COALESCE(?, name)',
+            'category_id = COALESCE(?, category_id)',
+            'regency_id = COALESCE(?, regency_id)',
+            'provider_name = COALESCE(?, provider_name)',
+            'service_type = COALESCE(?, service_type)',
+            'description = COALESCE(?, description)',
+            'price_min = COALESCE(?, price_min)',
+            'price_max = COALESCE(?, price_max)',
+            'price_unit = COALESCE(?, price_unit)',
+            'price_display = COALESCE(?, price_display)',
+            'facilities = COALESCE(?, facilities)',
+            'address = COALESCE(?, address)',
+            'latitude = COALESCE(?, latitude)',
+            'longitude = COALESCE(?, longitude)',
+            'contact_phone = COALESCE(?, contact_phone)',
+            'contact_wa = COALESCE(?, contact_wa)',
+            'is_community_managed = COALESCE(?, is_community_managed)',
+            'status = COALESCE(?, status)'
+        ];
+        return {
+            sql: `UPDATE services SET ${setStatements.join(', ')} WHERE id = ?`,
+            params: [
+                payload.name ? payload.name.trim() : null,
+                payload.category_id ? Number(payload.category_id) : null,
+                payload.regency_id ? Number(payload.regency_id) : null,
+                payload.provider_name ? payload.provider_name.trim() : null,
+                payload.service_type,
+                payload.description,
+                payload.price_min === undefined ? null : Number(payload.price_min),
+                payload.price_max === undefined ? null : Number(payload.price_max),
+                payload.price_unit,
+                payload.price_display,
+                payload.facilities,
+                payload.address,
+                payload.latitude === undefined ? null : Number(payload.latitude),
+                payload.longitude === undefined ? null : Number(payload.longitude),
+                payload.contact_phone,
+                payload.contact_wa,
+                normalizeCommunityFlag(payload.is_community_managed),
+                payload.status
+            ]
+        };
     }
-});
+}));
 
 // DELETE /api/services/:id (Admin only)
 router.delete('/:id', verifyToken, requireRole('admin'), createDeleteHandler(db, 'services', 'Layanan lokal', 'service'));

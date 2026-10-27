@@ -19,8 +19,10 @@ router.get('/', (req, res) => {
 });
 
 
+const requireAdmin = [verifyToken, requireRole('admin')];
+
 // POST /api/transport (Admin only)
-router.post('/', verifyToken, requireRole('admin'), (req, res) => {
+router.post('/', ...requireAdmin, (req, res) => {
     try {
         const { name, transport_type, route_direction, vehicle_type, departure_hours, price_display, description, operator, contact } = req.body;
 
@@ -61,37 +63,34 @@ router.post('/', verifyToken, requireRole('admin'), (req, res) => {
 });
 
 // PUT /api/transport/:id (Admin only)
-router.put('/:id', verifyToken, requireRole('admin'), (req, res) => {
+router.put('/:id', ...requireAdmin, (req, res) => {
     try {
         const { id } = req.params;
-        const { name, transport_type, route_direction, vehicle_type, departure_hours, price_display, description, operator, contact } = req.body;
-
-        const existing = db.prepare('SELECT * FROM transport_routes WHERE id = ?').get(id);
-        if (!existing) {
+        const targetRoute = db.prepare('SELECT * FROM transport_routes WHERE id = ?').get(id);
+        if (!targetRoute) {
             return res.status(404).json({ success: false, message: 'Rute transportasi tidak ditemukan.' });
         }
 
+        const b = req.body;
         const allowedModes = ['ferry', 'land_shuttle', 'traditional_boat'];
-        const resolvedType = allowedModes.includes(transport_type) ? transport_type : existing.transport_type;
-
-        const updateFields = [
-            name === undefined ? existing.name : name.trim(),
-            resolvedType,
-            route_direction === undefined ? existing.route_direction : route_direction.trim(),
-            vehicle_type === undefined ? existing.vehicle_type : vehicle_type,
-            departure_hours === undefined ? existing.departure_hours : departure_hours,
-            price_display === undefined ? existing.price_display : price_display,
-            description === undefined ? existing.description : description,
-            operator === undefined ? existing.operator : operator,
-            contact === undefined ? existing.contact : contact,
-            id
-        ];
+        const resolvedType = allowedModes.includes(b.transport_type) ? b.transport_type : targetRoute.transport_type;
 
         db.prepare(`
             UPDATE transport_routes
             SET name = ?, transport_type = ?, route_direction = ?, vehicle_type = ?, departure_hours = ?, price_display = ?, description = ?, operator = ?, contact = ?
             WHERE id = ?
-        `).run(...updateFields);
+        `).run(
+            b.name === undefined ? targetRoute.name : b.name.trim(),
+            resolvedType,
+            b.route_direction === undefined ? targetRoute.route_direction : b.route_direction.trim(),
+            b.vehicle_type === undefined ? targetRoute.vehicle_type : b.vehicle_type,
+            b.departure_hours === undefined ? targetRoute.departure_hours : b.departure_hours,
+            b.price_display === undefined ? targetRoute.price_display : b.price_display,
+            b.description === undefined ? targetRoute.description : b.description,
+            b.operator === undefined ? targetRoute.operator : b.operator,
+            b.contact === undefined ? targetRoute.contact : b.contact,
+            id
+        );
 
         return res.json({ success: true, message: 'Rute transportasi berhasil diperbarui.' });
     } catch (err) {
@@ -101,7 +100,7 @@ router.put('/:id', verifyToken, requireRole('admin'), (req, res) => {
 });
 
 // DELETE /api/transport/:id (Admin only)
-router.delete('/:id', verifyToken, requireRole('admin'), createDeleteHandler(db, 'transport_routes', 'Rute transportasi'));
+router.delete('/:id', ...requireAdmin, createDeleteHandler(db, 'transport_routes', 'Rute transportasi'));
 
 module.exports = router;
 

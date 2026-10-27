@@ -237,6 +237,32 @@ function normalizeCommunityFlag(val) {
     return val ? 1 : 0;
 }
 
+/**
+ * Creates an Express route handler to update an entity by ID with existence check and error handling.
+ * @param {object} options
+ * @returns {Function} Express route handler
+ */
+function createUpdateHandler(options) {
+    const { db, table, entityLabel, buildUpdate } = options;
+    return (req, res) => {
+        try {
+            const { id } = req.params;
+            const existing = db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(id);
+            if (!existing) {
+                return res.status(404).json({ success: false, message: `${entityLabel} tidak ditemukan.` });
+            }
+
+            const { sql, params } = buildUpdate(req, existing);
+            db.prepare(sql).run(...params, id);
+
+            return res.json({ success: true, message: `Data ${entityLabel.toLowerCase()} berhasil diperbarui.` });
+        } catch (err) {
+            console.error(`Error updating ${table}:`, err);
+            return res.status(500).json({ success: false, message: `Gagal memperbarui ${entityLabel.toLowerCase()}.` });
+        }
+    };
+}
+
 module.exports = {
     slugify,
     generateUniqueSlug,
@@ -248,7 +274,8 @@ module.exports = {
     sendPaginatedQuery,
     findEntityByIdOrSlug,
     normalizeCommunityFlag,
-    createEntityDetailHandler
+    createEntityDetailHandler,
+    createUpdateHandler
 };
 
 

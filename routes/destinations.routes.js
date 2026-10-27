@@ -5,12 +5,11 @@ const { verifyToken, requireRole } = require('../middleware/auth');
 const {
     generateUniqueSlug,
     applyCommonCatalogFilters,
-    fetchEntityReviews,
     createDeleteHandler,
     sendPaginatedQuery,
-    findEntityByIdOrSlug,
     normalizeCommunityFlag,
-    createEntityDetailHandler
+    createEntityDetailHandler,
+    createUpdateHandler
 } = require('../utils/helpers');
 
 
@@ -152,65 +151,49 @@ router.post('/', verifyToken, requireRole(['admin', 'partner']), (req, res) => {
 });
 
 // PUT /api/destinations/:id (Admin / Partner)
-router.put('/:id', verifyToken, requireRole(['admin', 'partner']), (req, res) => {
-    try {
-        const { id } = req.params;
-        const existing = db.prepare('SELECT * FROM destinations WHERE id = ?').get(id);
-        if (!existing) {
-            return res.status(404).json({ success: false, message: 'Destinasi tidak ditemukan.' });
-        }
-
-        const {
-            name, category_id, regency_id, description, address,
-            latitude, longitude, price_min, price_max, price_display,
-            operational_hours, contact_phone, contact_wa, is_community_managed, status, image_url
-        } = req.body;
-
-        const stmt = db.prepare(`
-            UPDATE destinations SET
-                name = COALESCE(?, name),
-                category_id = COALESCE(?, category_id),
-                regency_id = COALESCE(?, regency_id),
-                description = COALESCE(?, description),
-                address = COALESCE(?, address),
-                latitude = COALESCE(?, latitude),
-                longitude = COALESCE(?, longitude),
-                price_min = COALESCE(?, price_min),
-                price_max = COALESCE(?, price_max),
-                price_display = COALESCE(?, price_display),
-                operational_hours = COALESCE(?, operational_hours),
-                contact_phone = COALESCE(?, contact_phone),
-                contact_wa = COALESCE(?, contact_wa),
-                is_community_managed = COALESCE(?, is_community_managed),
-                status = COALESCE(?, status),
-                image_url = COALESCE(?, image_url)
-            WHERE id = ?
-        `);
-
-        const communityVal = normalizeCommunityFlag(is_community_managed);
-
-
-
-        stmt.run(
-            name ? name.trim() : null,
-            category_id ? Number(category_id) : null,
-            regency_id ? Number(regency_id) : null,
-            description, address,
-            latitude === undefined ? null : Number(latitude),
-            longitude === undefined ? null : Number(longitude),
-            price_min === undefined ? null : Number(price_min),
-            price_max === undefined ? null : Number(price_max),
-            price_display, operational_hours, contact_phone, contact_wa,
-            communityVal,
-            status, image_url, id
-        );
-
-        return res.json({ success: true, message: 'Data destinasi berhasil diperbarui.' });
-    } catch (err) {
-        console.error('Error updating destination:', err);
-        return res.status(500).json({ success: false, message: 'Gagal memperbarui destinasi.' });
+router.put('/:id', verifyToken, requireRole(['admin', 'partner']), createUpdateHandler({
+    db,
+    table: 'destinations',
+    entityLabel: 'Destinasi',
+    buildUpdate: (req) => {
+        const b = req.body;
+        return {
+            sql: `
+                UPDATE destinations SET
+                    name = COALESCE(?, name),
+                    category_id = COALESCE(?, category_id),
+                    regency_id = COALESCE(?, regency_id),
+                    description = COALESCE(?, description),
+                    address = COALESCE(?, address),
+                    latitude = COALESCE(?, latitude),
+                    longitude = COALESCE(?, longitude),
+                    price_min = COALESCE(?, price_min),
+                    price_max = COALESCE(?, price_max),
+                    price_display = COALESCE(?, price_display),
+                    operational_hours = COALESCE(?, operational_hours),
+                    contact_phone = COALESCE(?, contact_phone),
+                    contact_wa = COALESCE(?, contact_wa),
+                    is_community_managed = COALESCE(?, is_community_managed),
+                    status = COALESCE(?, status),
+                    image_url = COALESCE(?, image_url)
+                WHERE id = ?
+            `,
+            params: [
+                b.name ? b.name.trim() : null,
+                b.category_id ? Number(b.category_id) : null,
+                b.regency_id ? Number(b.regency_id) : null,
+                b.description, b.address,
+                b.latitude === undefined ? null : Number(b.latitude),
+                b.longitude === undefined ? null : Number(b.longitude),
+                b.price_min === undefined ? null : Number(b.price_min),
+                b.price_max === undefined ? null : Number(b.price_max),
+                b.price_display, b.operational_hours, b.contact_phone, b.contact_wa,
+                normalizeCommunityFlag(b.is_community_managed),
+                b.status, b.image_url
+            ]
+        };
     }
-});
+}));
 
 // DELETE /api/destinations/:id (Admin only)
 router.delete('/:id', verifyToken, requireRole('admin'), createDeleteHandler(db, 'destinations', 'Destinasi wisata', 'destination'));

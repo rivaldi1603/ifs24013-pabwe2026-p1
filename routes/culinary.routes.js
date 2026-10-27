@@ -65,33 +65,29 @@ router.post('/items', verifyToken, requireRole('admin'), (req, res) => {
 router.put('/items/:id', verifyToken, requireRole('admin'), (req, res) => {
     try {
         const { id } = req.params;
-        const { name, description, halal_status, origin_region, is_traditional, image_url } = req.body;
-
-        const existing = db.prepare('SELECT * FROM culinary_items WHERE id = ?').get(id);
-        if (!existing) {
+        const item = db.prepare('SELECT * FROM culinary_items WHERE id = ?').get(id);
+        if (!item) {
             return res.status(404).json({ success: false, message: 'Menu kuliner tidak ditemukan.' });
         }
 
-        let updatedTraditional = existing.is_traditional;
-        if (is_traditional !== undefined) {
-            updatedTraditional = is_traditional ? 1 : 0;
-        }
-
-        const updateRecord = [
-            name === undefined ? existing.name : name.trim(),
-            description === undefined ? existing.description : description,
-            halal_status === undefined ? existing.halal_status : halal_status,
-            origin_region === undefined ? existing.origin_region : origin_region,
-            updatedTraditional,
-            image_url === undefined ? existing.image_url : image_url,
-            id
-        ];
+        const b = req.body;
+        const traditional = b.is_traditional !== undefined
+            ? (b.is_traditional ? 1 : 0)
+            : item.is_traditional;
 
         db.prepare(`
             UPDATE culinary_items
             SET name = ?, description = ?, halal_status = ?, origin_region = ?, is_traditional = ?, image_url = ?
             WHERE id = ?
-        `).run(...updateRecord);
+        `).run(
+            b.name === undefined ? item.name : b.name.trim(),
+            b.description === undefined ? item.description : b.description,
+            b.halal_status === undefined ? item.halal_status : b.halal_status,
+            b.origin_region === undefined ? item.origin_region : b.origin_region,
+            traditional,
+            b.image_url === undefined ? item.image_url : b.image_url,
+            id
+        );
 
         return res.json({ success: true, message: 'Menu kuliner berhasil diperbarui.' });
     } catch (err) {
