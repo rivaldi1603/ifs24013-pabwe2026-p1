@@ -99,9 +99,10 @@ router.get('/:idOrSlug', createEntityDetailHandler({
     relatedParams: (dest) => [dest.regency_id, dest.category_id, dest.id]
 }));
 
+const partnerGuard = [verifyToken, requireRole(['admin', 'partner'])];
 
 // POST /api/destinations (Admin / Partner)
-router.post('/', verifyToken, requireRole(['admin', 'partner']), (req, res) => {
+router.post('/', ...partnerGuard, (req, res) => {
     try {
         const {
             name, category_id, regency_id, description, address,
@@ -151,7 +152,7 @@ router.post('/', verifyToken, requireRole(['admin', 'partner']), (req, res) => {
 });
 
 // PUT /api/destinations/:id (Admin / Partner)
-router.put('/:id', verifyToken, requireRole(['admin', 'partner']), createUpdateHandler({
+router.put('/:id', ...partnerGuard, createUpdateHandler({
     db,
     table: 'destinations',
     entityLabel: 'Destinasi',
