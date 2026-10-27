@@ -8,8 +8,10 @@ const {
     fetchEntityReviews,
     createDeleteHandler,
     sendPaginatedQuery,
-    findEntityByIdOrSlug
+    findEntityByIdOrSlug,
+    normalizeCommunityFlag
 } = require('../utils/helpers');
+
 
 // GET /api/destinations
 router.get('/', (req, res) => {
@@ -199,9 +201,8 @@ router.put('/:id', verifyToken, requireRole(['admin', 'partner']), (req, res) =>
             WHERE id = ?
         `);
 
-        const communityVal = is_community_managed !== undefined
-            ? (is_community_managed ? 1 : 0)
-            : null;
+        const communityVal = normalizeCommunityFlag(is_community_managed);
+
 
 
         stmt.run(

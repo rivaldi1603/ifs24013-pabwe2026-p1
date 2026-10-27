@@ -9,8 +9,10 @@ const {
   createDeleteHandler,
   sendListQuery,
   sendPaginatedQuery,
-  findEntityByIdOrSlug
+  findEntityByIdOrSlug,
+  normalizeCommunityFlag
 } = require('../utils/helpers');
+
 
 
 describe('Unit Tests for utils/helpers.js and db.js Wrapper', () => {
@@ -290,4 +292,21 @@ describe('Unit Tests for utils/helpers.js and db.js Wrapper', () => {
       wrapper.pragma('foreign_keys = ON');
     });
   });
+
+  describe('normalizeCommunityFlag()', () => {
+    it('returns null when value is undefined', () => {
+      expect(normalizeCommunityFlag(undefined)).toBeNull();
+    });
+
+    it('returns 1 when value is truthy and 0 when falsy', () => {
+      expect(normalizeCommunityFlag(true)).toBe(1);
+      expect(normalizeCommunityFlag(1)).toBe(1);
+      expect(normalizeCommunityFlag('1')).toBe(1);
+      expect(normalizeCommunityFlag(false)).toBe(0);
+      expect(normalizeCommunityFlag(0)).toBe(0);
+      expect(normalizeCommunityFlag('')).toBe(0);
+      expect(normalizeCommunityFlag(null)).toBe(0);
+    });
+  });
 });
+

@@ -191,6 +191,19 @@ function findEntityByIdOrSlug(db, table, alias, idOrSlug) {
     return entity;
 }
 
+/**
+ * Normalizes community managed flag to SQLite integer or null.
+ * Eliminates nested ternaries and negated conditions.
+ * @param {any} val
+ * @returns {number|null}
+ */
+function normalizeCommunityFlag(val) {
+    if (val === undefined) {
+        return null;
+    }
+    return val ? 1 : 0;
+}
+
 module.exports = {
     slugify,
     generateUniqueSlug,
@@ -200,6 +213,8 @@ module.exports = {
     createDeleteHandler,
     sendListQuery,
     sendPaginatedQuery,
-    findEntityByIdOrSlug
+    findEntityByIdOrSlug,
+    normalizeCommunityFlag
 };
+
 

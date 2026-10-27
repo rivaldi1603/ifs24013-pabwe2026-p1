@@ -106,17 +106,37 @@ async function initDatabase() {
     /* v8 ignore stop */
   }
 }
-dbReady = initDatabase();
+
+function getDbReady() {
+
+  if (!dbReady) {
+    dbReady = initDatabase();
+  }
+  return dbReady;
+}
 
 const db = {
   get ready() {
-    return dbReady;
+    return getDbReady();
   },
-  prepare: (sql) => dbInstance.prepare(sql),
-  transaction: (fn) => dbInstance.transaction(fn),
-  exec: (sql) => dbInstance.exec(sql),
-  pragma: (cmd) => dbInstance.pragma(cmd),
+  prepare: (sql) => {
+    getDbReady();
+    return dbInstance.prepare(sql);
+  },
+  transaction: (fn) => {
+    getDbReady();
+    return dbInstance.transaction(fn);
+  },
+  exec: (sql) => {
+    getDbReady();
+    return dbInstance.exec(sql);
+  },
+  pragma: (cmd) => {
+    getDbReady();
+    return dbInstance.pragma(cmd);
+  },
   createSqlJsWrapper
 };
+
 
 module.exports = db;
